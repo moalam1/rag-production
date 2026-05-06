@@ -12,7 +12,7 @@ import guardrails.output as output_guard
 from pipeline.embedder  import embed_text
 from pipeline.retriever import retrieve_chunks
 from pipeline.reranker  import rerank_chunks, build_context
-from pipeline.generator import generate_answer
+from pipeline.generator import generate_answer, prepare_query
 
 log    = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["search"])
@@ -62,8 +62,14 @@ async def search(req: SearchRequest, _: str = Depends(verify_api_key)):
             sources=[], followups=[], blocked=True,
         )
 
-    # 2. RAG pipeline
-    embedding = embed_text(req.query)
+    # 2. Language detection + translation
+    # detect_language uses Comprehend ($0.0001/call, stays in AWS)
+    # translate_to_english uses gpt-4o-mini only if non-English detected
+    # English documents need English embeddings for accurate Pinecone retrieval
+    retrieval_query, detected_lang = prepare_query(req.query)
+
+    # 3. RAG pipeline
+    embedding = embed_text(retrieval_query)
     chunks    = retrieve_chunks(embedding)
 
     if not chunks:
@@ -73,12 +79,13 @@ async def search(req: SearchRequest, _: str = Depends(verify_api_key)):
             sources=[], followups=[], blocked=False,
         )
 
-    reranked = rerank_chunks(req.query, chunks)
+    reranked = rerank_chunks(retrieval_query, chunks)
     context  = build_context(reranked)
-    result   = generate_answer(req.query, context)
+    # Pass original query so GPT-4o responds in user's language
+    result   = generate_answer(req.query, context, detected_lang=detected_lang)
     answer   = result["answer"]
 
-    # 3. Output guardrails
+    # 4. Output guardrails
     passed, message = output_guard.run(answer, context, reranked)
     if not passed:
         return SearchResponse(
