@@ -128,18 +128,17 @@ def check_grounding(answer: str, context: str) -> tuple[bool, str]:
 
 def run(answer: str, context: str, sources: list) -> tuple[bool, str]:
     """
-    Run all output guardrails in order. Returns on first failure.
-
-    Order:
-      1. check_bedrock   — AWS guardrail (PII + grounding + content filter)
-      2. check_citations — local (no LLM call)
+    Run all output guardrails. Citations check is advisory only.
+    Bedrock handles content safety — citation check is informational.
     """
-    for check, args in [
-        (check_bedrock,   (answer,)),
-        (check_citations, (answer, sources)),
-    ]:
-        passed, message = check(*args)
-        if not passed:
-            log.info("Output guardrail '%s' blocked answer", check.__name__)
-            return False, message
+    # Bedrock guardrail — blocks on PII / content violations
+    passed, message = check_bedrock(answer)
+    if not passed:
+        log.info("Bedrock output guardrail blocked answer")
+        return False, message
+    # Citations check — log only, never block
+    # GPT-4o sometimes omits [N] markers for short answers
+    passed, message = check_citations(answer, sources)
+    if not passed:
+        log.warning("Citation check failed (not blocking): %s", message)
     return True, ""

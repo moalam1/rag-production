@@ -33,11 +33,13 @@ class SearchRequest(BaseModel):
     top_k:     int       = Field(5, ge=1, le=10)
 
 class Source(BaseModel):
-    filename:       str
-    clean_name:     str
-    page:           str
-    pdf_url:        str
-    preview:        str
+    filename:        str
+    clean_name:      str
+    page:            str
+    pdf_url:         str
+    page_url:        str = ""
+    resource_type:   str = ""
+    preview:         str
     relevance_score: float
 
 class SearchResponse(BaseModel):
@@ -100,7 +102,9 @@ async def search(req: SearchRequest, _: str = Depends(verify_api_key)):
             clean_name=c.get("clean_name", c["filename"]),
             page=c["page"],
             pdf_url=c.get("pdf_url", ""),
-            preview=c["text"][:200].strip(),
+            page_url=c.get("page_url", ""),
+            resource_type=c.get("resource_type", ""),
+            preview=c["text"].split("\n\n",1)[-1][:200].strip(),
             relevance_score=round(c.get("rerank_score", 0.0), 4),
         )
         for c in reranked
