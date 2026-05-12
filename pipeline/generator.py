@@ -25,6 +25,7 @@ from botocore.exceptions import ClientError, NoCredentialsError
 from openai import OpenAI
 
 from config import settings
+from pinecone import Pinecone
 from cache.factory import cache
 from cache.memory import MemoryCache
 
@@ -36,7 +37,7 @@ _client = OpenAI(api_key=settings.OPENAI_API_KEY)
 # Auth via EC2 IAM role — no API key needed
 # IAM policy required: comprehend:DetectDominantLanguage
 try:
-    _comprehend      = boto3.client("comprehend", region_name=settings.AWS_REGION)
+    _comprehend      = boto3.client("comprehend", region_name=settings.AWS_REGION, config=__import__("botocore.config", fromlist=["Config"]).Config(connect_timeout=3, read_timeout=3, retries={"max_attempts": 1}))
     _COMPREHEND_AVAILABLE = True
     log.info("Comprehend client initialised (region: %s)", settings.AWS_REGION)
 except (NoCredentialsError, Exception) as e:
@@ -171,11 +172,12 @@ def generate_answer(query: str, context: str, detected_lang: str = "en") -> dict
     Identical (query + context) pairs return cached answers instantly.
     """
     c   = cache()
-    key = MemoryCache.make_key("answer", {"q": query, "lang": detected_lang, "ctx": context[:500]})
+    key = MemoryCache.make_key("answer", {"q": query.strip().lower(), "lang": detected_lang})
 
     cached = c.get(key)
     if cached is not None:
         log.debug("answer cache HIT")
+        cached["cache_hit"] = True
         return cached
 
     lang_name    = LANG_NAMES.get(detected_lang, "English")
@@ -208,10 +210,155 @@ def generate_answer(query: str, context: str, detected_lang: str = "en") -> dict
         result = {
             "answer":    parsed.get("answer", ""),
             "followups": parsed.get("followups", []),
+            "cache_hit": False,
         }
     except Exception as e:
         log.error("generate_answer error: %s", e)
         result = {"answer": "Error generating answer.", "followups": []}
 
     c.set(key, result)
+    return result
+
+
+# ── Summary index client ──────────────────────────────────────────
+_summary_index = Pinecone(api_key=settings.PINECONE_API_KEY).Index(
+    settings.PINECONE_SUMMARY_INDEX
+)
+
+SUMMARY_PROMPT = """You are a document analyst. Read the following document chunks and produce:
+1. A clear 2-3 sentence overview of what this document covers
+2. 5-8 key topics as short tags
+3. A suggested clean display name (title case, no filename extensions)
+4. The most likely resource type from: whitepaper, blueprint, case-study, analyst-report, data-sheet, solution-brief, playbook, article, multimedia, webinar
+
+Return ONLY a JSON object:
+{
+  "summary":        "2-3 sentence overview...",
+  "key_topics":     ["topic1", "topic2", "topic3"],
+  "suggested_name": "Clean Document Name",
+  "suggested_type": "whitepaper"
+}
+No markdown, no explanation outside the JSON.
+"""
+
+
+def summarise_document(filename: str) -> dict:
+    """
+    Generate AI summary for a document using the rag-summary index.
+    Cache layers:
+      1. Redis exact cache (TTL 24h)
+      2. Full pipeline — fetch chunks → GPT-4o
+    Falls back to rag-poc search index if summary index has no chunks yet.
+    """
+    import json as _json
+
+    # ── Redis cache check ─────────────────────────────────────────
+    c   = cache()
+    key = MemoryCache.make_key("summary", {"filename": filename})
+
+    cached = c.get(key)
+    if cached is not None:
+        log.info("Summary cache HIT — %s", filename)
+        cached["cached"] = True
+        return cached
+
+    # ── Fetch chunks from summary index ──────────────────────────
+    try:
+        embed_resp = _client.embeddings.create(
+            input=filename,
+            model="text-embedding-3-small",
+            dimensions=1024,
+        )
+        vector = embed_resp.data[0].embedding
+    except Exception as e:
+        log.error("Embed error for summary: %s", e)
+        return {"error": "Could not generate summary — embedding failed"}
+
+    ALL_NS = ["technical", "business", "media"]
+    chunks = []
+
+    # Try summary index first
+    for ns in ALL_NS:
+        try:
+            results = _summary_index.query(
+                vector=vector,
+                top_k=5,
+                include_metadata=True,
+                namespace=ns,
+                filter={"filename": {"$eq": filename}, "status": {"$eq": "current"}},
+            )
+            for match in results.matches:
+                nc = match.metadata.get("_node_content", "")
+                if nc:
+                    try:
+                        text = _json.loads(nc).get("text", "")
+                        if text.strip():
+                            chunks.append(text)
+                    except Exception:
+                        pass
+        except Exception as e:
+            log.warning("Summary index query error ns=%s: %s", ns, e)
+
+    # Fallback to search index if summary index empty
+    if not chunks:
+        log.info("Summary index empty for %s — falling back to search index", filename)
+        from pinecone import Pinecone as _Pinecone
+        _search_idx = _Pinecone(api_key=settings.PINECONE_API_KEY).Index(settings.PINECONE_INDEX)
+        for ns in ALL_NS:
+            try:
+                results = _search_idx.query(
+                    vector=vector,
+                    top_k=8,
+                    include_metadata=True,
+                    namespace=ns,
+                    filter={"filename": {"$eq": filename}},
+                )
+                for match in results.matches:
+                    nc = match.metadata.get("_node_content", "")
+                    if nc:
+                        try:
+                            text = _json.loads(nc).get("text", "")
+                            if text.strip():
+                                chunks.append(text)
+                        except Exception:
+                            pass
+            except Exception as e:
+                log.warning("Search index fallback error ns=%s: %s", ns, e)
+
+    if not chunks:
+        return {"error": f"No content found for {filename} in any index"}
+
+    # ── GPT-4o summarise ─────────────────────────────────────────
+    context = "\n\n---\n\n".join(chunks[:8])
+    try:
+        response = _client.chat.completions.create(
+            model=settings.GENERATION_MODEL,
+            messages=[
+                {"role": "system", "content": SUMMARY_PROMPT},
+                {"role": "user",   "content": f"Document chunks:\n\n{context}"},
+            ],
+            temperature=0.2,
+            max_tokens=400,
+        )
+        raw = response.choices[0].message.content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        parsed = _json.loads(raw.strip())
+        result = {
+            "filename":       filename,
+            "summary":        parsed.get("summary", ""),
+            "key_topics":     parsed.get("key_topics", []),
+            "suggested_name": parsed.get("suggested_name", ""),
+            "suggested_type": parsed.get("suggested_type", ""),
+            "cached":         False,
+        }
+    except Exception as e:
+        log.error("GPT-4o summary error: %s", e)
+        return {"error": f"Could not generate summary: {e}"}
+
+    # ── Store in Redis (24h) ──────────────────────────────────────
+    c.set(key, result, ttl=86400)
+    log.info("Summary cached for %s", filename)
     return result

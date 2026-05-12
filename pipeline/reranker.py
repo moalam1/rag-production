@@ -43,6 +43,30 @@ def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
         chunk["rerank_score"] = result.relevance_score
         reranked.append(chunk)
 
+    # ── Freshness decay ───────────────────────────────────────────
+    from datetime import datetime
+    now = datetime.now()
+    for chunk in reranked:
+        pub = chunk.get("published_date", "")
+        try:
+            days_old = (now - datetime.fromisoformat(pub)).days
+        except (ValueError, TypeError):
+            days_old = 365  # unknown age — treat as 1 year old
+
+        if days_old < 30:
+            multiplier = 1.05
+        elif days_old < 180:
+            multiplier = 1.00
+        elif days_old < 365:
+            multiplier = 0.90
+        elif days_old < 730:
+            multiplier = 0.80
+        else:
+            multiplier = 0.70
+
+        chunk["rerank_score"] = round(chunk["rerank_score"] * multiplier, 4)
+        chunk["freshness_multiplier"] = multiplier
+
     c.set(key, reranked)
     return reranked
 

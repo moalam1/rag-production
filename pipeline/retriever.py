@@ -26,7 +26,15 @@ def _query_namespace(vector: list, namespace: str, top_k: int) -> list[dict]:
             top_k=top_k,
             include_metadata=True,
             namespace=namespace,
+            filter={"is_latest": {"$eq": "true"}},
         )
+        if not results.matches:
+            results = _index.query(
+                vector=vector,
+                top_k=top_k,
+                include_metadata=True,
+                namespace=namespace,
+            )
     except Exception as e:
         log.warning("Pinecone query failed for namespace '%s': %s", namespace, e)
         return []

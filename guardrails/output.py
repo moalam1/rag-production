@@ -126,7 +126,9 @@ def check_grounding(answer: str, context: str) -> tuple[bool, str]:
     return True, ""
 
 
-def run(answer: str, context: str, sources: list) -> tuple[bool, str]:
+def run(answer: str, context: str = "", sources: list = []) -> tuple[bool, str]:
+    return _run_orig(answer, context, sources)
+def _run_orig(answer: str, context: str, sources: list) -> tuple[bool, str]:
     """
     Run all output guardrails. Citations check is advisory only.
     Bedrock handles content safety — citation check is informational.
