@@ -127,6 +127,34 @@ def ingest(
 
     try:
         # ── Parse PDFs ────────────────────────────────────────────
+        # ── Compute content hash before parsing ──────────────────
+        pdf_files      = list(Path(tmp_dir).glob("*.pdf"))
+        first_filename = pdf_files[0].name if pdf_files else "unknown.pdf"
+        content_hash   = _content_hash(tmp_dir)
+        family         = document_family.strip() if document_family.strip() else (
+            re.sub(r"[^a-z0-9_]", "_", first_filename.lower().replace(".pdf",""))[:40]
+        )
+        logs.append(f"🔑 Content hash: {content_hash[:8]}...")
+
+        # ── Skip if unchanged ─────────────────────────────────────
+        if is_unchanged(first_filename, content_hash):
+            logs.append(f"⏭️  Document unchanged — skipping re-index (same hash).")
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            return logs
+
+        # ── Deprecate old version if update detected ──────────────
+        existing_version = get_version(first_filename)
+        if existing_version > 0 and existing_version != version:
+            logs.append(f"🔄 Version change detected (v{existing_version} → v{version}) — deprecating old chunks...")
+            deprecate_old_version(first_filename)
+            for ns in ["technical", "business", "media"]:
+                try:
+                    _index.delete(filter={"filename": {"$eq": first_filename}}, namespace=ns)
+                    _summary.delete(filter={"filename": {"$eq": first_filename}}, namespace=ns)
+                except Exception as de:
+                    logs.append(f"⚠️  Could not delete old chunks in {ns}: {de}")
+            logs.append("✅ Old chunks removed from Pinecone.")
+
         logs.append("🔍 Parsing PDFs with LlamaParse...")
         parser = LlamaParse(
             api_key=settings.LLAMA_CLOUD_API_KEY,
@@ -263,15 +291,6 @@ def ingest(
             # Derive first_filename and content_hash if hash check block not reached
             import os as _os
             _pdfs = [f for f in _os.listdir(tmp_dir) if f.endswith('.pdf')] if _os.path.exists(tmp_dir) else []
-            first_filename = documents[0].metadata.get('filename', 'unknown.pdf') if documents else 'unknown.pdf'
-            try:
-                content_hash
-            except NameError:
-                content_hash = 'manual'
-            try:
-                family
-            except NameError:
-                family = document_family.strip() if document_family.strip() else 'unknown'
             save_record(
                 filename        = first_filename,
                 clean_name      = clean_name,

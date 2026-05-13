@@ -55,7 +55,7 @@ class SearchResponse(BaseModel):
 # ── Endpoints ──────────────────────────────────────────────────────
 
 @traceable(name="rag-search", run_type="chain")
-async def _run_pipeline(query: str, namespace: str = None) -> dict:
+async def _run_pipeline(query: str, namespace: str = None, source: str = "unknown", detected_lang_hint: str = "en") -> dict:
     from pipeline.embedder import embed_text
     from pipeline.retriever import retrieve_chunks
     from pipeline.reranker import rerank_chunks, build_context
@@ -65,10 +65,26 @@ async def _run_pipeline(query: str, namespace: str = None) -> dict:
     reranked  = rerank_chunks(retrieval_query, chunks)
     context   = build_context(reranked)
     result    = generate_answer(query, context, detected_lang=detected_lang)
+    result["detected_lang"] = detected_lang
+    result["source"]        = source
+    result["namespace"]     = namespace or "all"
+    result["chunk_count"]   = len(reranked)
+    result["top_score"]     = round(reranked[0].get("rerank_score", 0), 4) if reranked else 0
     return {"result": result, "reranked": reranked, "detected_lang": detected_lang}
 
 @router.post("/search", response_model=SearchResponse)
 async def search(req: SearchRequest, _: str = Depends(verify_api_key)):
+
+    # ── Log query metadata to LangSmith ──────────────────────────
+    from langsmith import get_current_run_tree
+    run = get_current_run_tree()
+    if run:
+        run.metadata.update({
+            "query":      req.query,
+            "namespace":  req.namespace or "all",
+            "source":     req.source or "unknown",
+            "user_agent": req.user_agent or "unknown",
+        })
 
     # 1. Input guardrails
     passed, message = input_guard.run(req.query)
@@ -78,25 +94,34 @@ async def search(req: SearchRequest, _: str = Depends(verify_api_key)):
             sources=[], followups=[], blocked=True,
         )
 
-    # 2. Language detection + translation
-    # detect_language uses Comprehend ($0.0001/call, stays in AWS)
-    # translate_to_english uses gpt-4o-mini only if non-English detected
-    # English documents need English embeddings for accurate Pinecone retrieval
-    retrieval_query, detected_lang = prepare_query(req.query)
+    source = getattr(req, "source", "") or "api"
 
-    # 3. RAG pipeline
-    embedding = embed_text(retrieval_query)
-    chunks    = retrieve_chunks(embedding)
+    # 2-3. Language detection + RAG pipeline via _run_pipeline
+    pipeline_out = await _run_pipeline(
+        query=req.query,
+        namespace=getattr(req, "namespace", None),
+        source=source,
+        langsmith_extra={
+            "metadata": {
+                "query":        req.query,
+                "namespace":    getattr(req, "namespace", None) or "all",
+                "source":       source,
+                "query_length": len(req.query),
+            }
+        }
+    )
+    result        = pipeline_out["result"]
+    reranked      = pipeline_out["reranked"]
+    detected_lang = pipeline_out["detected_lang"]
 
-    if not chunks:
+    if not reranked:
         return SearchResponse(
             query=req.query,
             answer="No relevant documents found in the index.",
             sources=[], followups=[], blocked=False,
         )
-
-    reranked = rerank_chunks(retrieval_query, chunks)
-    context  = build_context(reranked)
+    from pipeline.reranker import build_context
+    context = build_context(reranked)
     # Pass original query so GPT-4o responds in user's language
     result   = generate_answer(req.query, context, detected_lang=detected_lang)
     answer   = result["answer"]
@@ -123,6 +148,18 @@ async def search(req: SearchRequest, _: str = Depends(verify_api_key)):
         )
         for c in reranked
     ]
+
+    # ── Log analytics ──────────────────────────────────────────
+    try:
+        from pipeline.analytics import log_query
+        log_query(
+            query=req.query,
+            namespace=getattr(req, "namespace", "all") or "all",
+            cached=result.get("cache_hit", False),
+            lang=detected_lang,
+        )
+    except Exception:
+        pass
 
     return SearchResponse(
         query=req.query,
@@ -186,3 +223,17 @@ async def list_registry(_: str = Depends(verify_api_key)):
         "total": len(docs),
         "documents": docs,
     }
+
+
+@router.get("/analytics/top-queries")
+async def top_queries(_: str = Depends(verify_api_key)):
+    """Return top 20 most searched queries."""
+    from pipeline.analytics import get_top_queries
+    return {"queries": get_top_queries(20)}
+
+
+@router.get("/analytics/stats")
+async def analytics_stats(_: str = Depends(verify_api_key)):
+    """Return search analytics — volume, cache rate, namespaces, languages."""
+    from pipeline.analytics import get_stats
+    return get_stats()
