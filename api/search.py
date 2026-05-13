@@ -13,6 +13,7 @@ from pipeline.embedder  import embed_text
 from pipeline.retriever import retrieve_chunks
 from pipeline.reranker  import rerank_chunks, build_context
 from pipeline.generator import generate_answer, prepare_query
+from langsmith import traceable
 
 log    = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["search"])
@@ -52,6 +53,19 @@ class SearchResponse(BaseModel):
 
 
 # ── Endpoints ──────────────────────────────────────────────────────
+
+@traceable(name="rag-search", run_type="chain")
+async def _run_pipeline(query: str, namespace: str = None) -> dict:
+    from pipeline.embedder import embed_text
+    from pipeline.retriever import retrieve_chunks
+    from pipeline.reranker import rerank_chunks, build_context
+    retrieval_query, detected_lang = prepare_query(query)
+    embedding = embed_text(retrieval_query)
+    chunks    = retrieve_chunks(embedding, namespace=namespace)
+    reranked  = rerank_chunks(retrieval_query, chunks)
+    context   = build_context(reranked)
+    result    = generate_answer(query, context, detected_lang=detected_lang)
+    return {"result": result, "reranked": reranked, "detected_lang": detected_lang}
 
 @router.post("/search", response_model=SearchResponse)
 async def search(req: SearchRequest, _: str = Depends(verify_api_key)):
@@ -115,6 +129,7 @@ async def search(req: SearchRequest, _: str = Depends(verify_api_key)):
         answer=answer,
         sources=sources,
         followups=result.get("followups", []),
+        cached=result.get("cache_hit", False),
     )
 
 
@@ -137,3 +152,37 @@ async def clear_cache(_: str = Depends(verify_api_key)):
     from cache.factory import cache
     cache().clear()
     return {"message": "Cache cleared"}
+
+
+# ── Summarise endpoint ────────────────────────────────────────────
+
+class SummariseRequest(BaseModel):
+    filename: str = Field(..., min_length=1, max_length=500)
+
+class SummariseResponse(BaseModel):
+    filename:       str
+    summary:        str = ""
+    key_topics:     list[str] = []
+    suggested_name: str = ""
+    suggested_type: str = ""
+    cached:         bool = False
+    error:          str = ""
+
+@router.post("/summarise", response_model=SummariseResponse)
+async def summarise(req: SummariseRequest, _: str = Depends(verify_api_key)):
+    from pipeline.generator import summarise_document
+    result = summarise_document(req.filename)
+    if "error" in result:
+        return SummariseResponse(filename=req.filename, error=result["error"])
+    return SummariseResponse(**result)
+
+
+@router.get("/registry")
+async def list_registry(_: str = Depends(verify_api_key)):
+    """List all documents in the DynamoDB registry."""
+    from pipeline.registry import list_documents
+    docs = list_documents()
+    return {
+        "total": len(docs),
+        "documents": docs,
+    }
