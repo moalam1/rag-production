@@ -21,7 +21,7 @@ logging.basicConfig(
 )
 
 # ── Rate limiter ──────────────────────────────────────────────────
-from limiter import limiter
+limiter = Limiter(key_func=get_remote_address, default_limits=[settings.RATE_LIMIT])
 
 # ── App ───────────────────────────────────────────────────────────
 app = FastAPI(

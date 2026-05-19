@@ -22,6 +22,7 @@ class Settings:
     # ── Pinecone ──────────────────────────────────────────────────
     PINECONE_API_KEY:  str = os.getenv("PINECONE_API_KEY", "")
     PINECONE_INDEX:    str = os.getenv("PINECONE_INDEX", "rag-poc")
+    PINECONE_SUMMARY_INDEX: str = os.getenv("PINECONE_SUMMARY_INDEX", "rag-summary")
     TOP_K_RETRIEVE:    int = 20
     TOP_K_RERANK:      int = 5
 

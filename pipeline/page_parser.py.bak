@@ -1,0 +1,352 @@
+"""
+pipeline/page_parser.py — Fetch and parse Equinix AEM resource pages.
+
+Takes a public equinix.com/resources URL and returns:
+  - Clean markdown text (via trafilatura + markdownify)
+  - Structured metadata (title, resource_type, tags, dates, pdf_url)
+  - SHA-256 content hash for dedup
+  - og:updated_time for fast pre-check on subsequent crawls
+
+Supports:
+  - resourcel2page      — whitepapers, analyst reports, data sheets
+  - resourcel2multimediapage — video resource pages
+  - Any other AEM resource template (graceful fallback)
+
+No Playwright needed — individual resource pages are server-side rendered.
+Playwright is only needed for the JS-rendered listing/discovery pages (crawler.py).
+"""
+import hashlib
+import logging
+import re
+from dataclasses import dataclass, field
+from typing import Optional
+from urllib.parse import urlparse
+
+import httpx
+import trafilatura
+from markdownify import markdownify as md
+from bs4 import BeautifulSoup
+
+log = logging.getLogger(__name__)
+
+# ── Constants ─────────────────────────────────────────────────────────────────
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (compatible; EquinixRAGBot/1.0; "
+        "+https://www.equinix.com)"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+}
+FETCH_TIMEOUT   = 30   # seconds
+MAX_CONTENT_LEN = 5_000_000  # 5MB — skip anything larger
+
+
+@dataclass
+class ParsedPage:
+    """Structured output from page_parser — passed to ingester for chunking."""
+    url:             str
+    title:           str
+    markdown:        str                  # clean markdown body
+    resource_type:   str                  # whitepaper, video, etc.
+    template:        str                  # AEM meta-template value
+    tags:            list[str] = field(default_factory=list)
+    published_date:  str = ""             # YYYY-MM-DD from og:updated_time
+    og_updated_time: str = ""             # raw ISO timestamp for fast pre-check
+    pdf_url:         str = ""             # /content/dam/*.pdf if present
+    youtube_id:      str = ""             # YouTube video ID if present
+    content_hash:    str = ""             # SHA-256 of raw HTML bytes
+    document_family: str = ""             # derived from URL slug
+    page_url:        str = ""             # canonical URL
+    word_count:      int = 0
+
+
+# ── Main entry point ──────────────────────────────────────────────────────────
+
+def parse_page(url: str) -> Optional[ParsedPage]:
+    """
+    Fetch and parse an Equinix resource page.
+
+    Args:
+        url: Full URL e.g. https://www.equinix.com/resources/whitepapers/my-paper
+
+    Returns:
+        ParsedPage on success, None on fetch/parse failure.
+    """
+    url = url.strip().rstrip("/")
+    log.info("Parsing page: %s", url)
+
+    # ── Fetch ─────────────────────────────────────────────────────────────────
+    raw_html, content_hash = _fetch(url)
+    if not raw_html:
+        return None
+
+    # ── Parse HTML ────────────────────────────────────────────────────────────
+    soup = BeautifulSoup(raw_html, "html.parser")
+
+    template      = _meta(soup, "meta-template")
+    title         = _meta(soup, "og:title") or _meta(soup, "title") or _tag_text(soup, "h1")
+    og_updated    = _meta(soup, "og:updated_time") or _meta(soup, "article:modified_time") or ""
+    published_date = _parse_date(og_updated)
+    tags          = _extract_tags(soup)
+    pdf_url       = _extract_pdf_url(soup, url)
+    youtube_id    = _extract_youtube_id(soup)
+    resource_type = _derive_resource_type(url, template)
+    family        = _derive_family(url)
+
+    # ── Extract main content ──────────────────────────────────────────────────
+    markdown = _extract_markdown(raw_html, url, soup)
+    if not markdown or len(markdown.strip()) < 50:
+        log.warning("Page yielded no extractable content: %s", url)
+        return None
+
+    word_count = len(markdown.split())
+    log.info(
+        "Parsed '%s' — %d words, template=%s, type=%s, pdf=%s, yt=%s",
+        title, word_count, template, resource_type,
+        "yes" if pdf_url else "no",
+        youtube_id or "no",
+    )
+
+    return ParsedPage(
+        url             = url,
+        title           = title,
+        markdown        = markdown,
+        resource_type   = resource_type,
+        template        = template,
+        tags            = tags,
+        published_date  = published_date,
+        og_updated_time = og_updated,
+        pdf_url         = pdf_url,
+        youtube_id      = youtube_id,
+        content_hash    = content_hash,
+        document_family = family,
+        page_url        = url,
+        word_count      = word_count,
+    )
+
+
+# ── Fetch ─────────────────────────────────────────────────────────────────────
+
+def _fetch(url: str) -> tuple[str, str]:
+    """
+    Fetch page HTML. Returns (html, sha256_hash) or ("", "") on failure.
+    """
+    try:
+        with httpx.Client(
+            headers=HEADERS,
+            timeout=FETCH_TIMEOUT,
+            follow_redirects=True,
+        ) as client:
+            resp = client.get(url)
+            resp.raise_for_status()
+
+            content_bytes = resp.content
+            if len(content_bytes) > MAX_CONTENT_LEN:
+                log.warning("Page too large (%d bytes), skipping: %s", len(content_bytes), url)
+                return "", ""
+
+            content_hash = hashlib.sha256(content_bytes).hexdigest()[:32]
+            return resp.text, content_hash
+
+    except httpx.HTTPStatusError as e:
+        log.warning("HTTP %d for %s", e.response.status_code, url)
+        return "", ""
+    except httpx.RequestError as e:
+        log.warning("Request error for %s: %s", url, e)
+        return "", ""
+
+
+# ── Content extraction ────────────────────────────────────────────────────────
+
+def _extract_markdown(raw_html: str, url: str, soup: BeautifulSoup) -> str:
+    """
+    Extract main body content and convert to clean markdown.
+
+    Strategy:
+      1. trafilatura — best at stripping nav/footer/ads from AEM pages
+      2. Fallback to BeautifulSoup main content selectors
+      3. Convert to markdown via markdownify
+    """
+    # Try trafilatura first
+    extracted = trafilatura.extract(
+        raw_html,
+        url=url,
+        include_tables=True,
+        include_links=False,     # links add noise to RAG chunks
+        include_images=False,
+        no_fallback=False,
+        favor_recall=True,       # prefer more content over precision
+        output_format="markdown",
+    )
+
+    if extracted and len(extracted.strip()) > 100:
+        return _clean_markdown(extracted)
+
+    # Fallback — try known AEM content selectors
+    log.debug("trafilatura returned little content, trying BS4 fallback")
+    for selector in [
+        "main",
+        "[role='main']",
+        ".resource-detail",
+        ".page-content",
+        "article",
+        ".content-wrapper",
+    ]:
+        el = soup.select_one(selector)
+        if el:
+            html_fragment = str(el)
+            converted = md(
+                html_fragment,
+                heading_style="ATX",
+                bullets="-",
+                strip=["script", "style", "nav", "footer", "header"],
+            )
+            if converted and len(converted.strip()) > 100:
+                return _clean_markdown(converted)
+
+    # Last resort — full page markdownify minus obvious noise
+    for tag in soup(["script", "style", "nav", "footer", "header", "iframe"]):
+        tag.decompose()
+    return _clean_markdown(md(str(soup.body or soup), heading_style="ATX", bullets="-"))
+
+
+def _clean_markdown(text: str) -> str:
+    """Remove excessive whitespace and boilerplate from markdown."""
+    # Collapse 3+ blank lines to 2
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    # Remove lines that are just whitespace
+    lines = [l for l in text.splitlines() if l.strip()]
+    # Remove very short lines that are likely nav artifacts (under 3 chars)
+    lines = [l for l in lines if len(l.strip()) >= 3]
+    return "\n\n".join(
+        "\n".join(chunk)
+        for chunk in _group_lines(lines)
+    ).strip()
+
+
+def _group_lines(lines: list[str]) -> list[list[str]]:
+    """Group lines into paragraphs for clean joining."""
+    groups, current = [], []
+    for line in lines:
+        if line.strip():
+            current.append(line)
+        else:
+            if current:
+                groups.append(current)
+                current = []
+    if current:
+        groups.append(current)
+    return groups
+
+
+# ── Metadata extraction ───────────────────────────────────────────────────────
+
+def _meta(soup: BeautifulSoup, name: str) -> str:
+    """Extract meta tag content by name or property."""
+    tag = (
+        soup.find("meta", attrs={"name": name})
+        or soup.find("meta", attrs={"property": name})
+    )
+    return (tag.get("content", "") if tag else "").strip()
+
+
+def _tag_text(soup: BeautifulSoup, tag: str) -> str:
+    el = soup.find(tag)
+    return el.get_text(strip=True) if el else ""
+
+
+def _extract_tags(soup: BeautifulSoup) -> list[str]:
+    """
+    Extract topic tags from AEM resource pages.
+    Tags appear as links in .tags, .resource-tags, or meta keywords.
+    """
+    tags = set()
+
+    # Try structured tag containers
+    for selector in [".tags a", ".resource-tags a", ".tag-list a", "[data-tags]"]:
+        for el in soup.select(selector):
+            t = el.get_text(strip=True)
+            if t:
+                tags.add(t)
+
+    # Fallback to meta keywords
+    if not tags:
+        keywords = _meta(soup, "keywords")
+        if keywords:
+            tags.update(k.strip() for k in keywords.split(",") if k.strip())
+
+    return sorted(tags)
+
+
+def _extract_pdf_url(soup: BeautifulSoup, base_url: str) -> str:
+    """
+    Find direct PDF download link in page HTML.
+    Equinix whitepapers link to /content/dam/*.pdf — public CDN, no auth.
+    """
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        if "/content/dam/" in href and href.endswith(".pdf"):
+            if href.startswith("http"):
+                return href
+            return f"https://www.equinix.com{href}"
+    return ""
+
+
+def _extract_youtube_id(soup: BeautifulSoup) -> str:
+    """Extract YouTube video ID from embed iframe src."""
+    for iframe in soup.find_all("iframe", src=True):
+        src = iframe["src"]
+        if "youtube.com/embed/" in src:
+            match = re.search(r"youtube\.com/embed/([a-zA-Z0-9_-]{11})", src)
+            if match:
+                return match.group(1)
+    return ""
+
+
+def _derive_resource_type(url: str, template: str) -> str:
+    """
+    Derive resource type from URL path segment or AEM template.
+    e.g. /resources/whitepapers/... → whitepaper
+    """
+    path = urlparse(url).path.lower()
+    mapping = {
+        "whitepapers":     "whitepaper",
+        "analyst-reports": "analyst-report",
+        "data-sheets":     "data-sheet",
+        "case-studies":    "case-study",
+        "solution-briefs": "solution-brief",
+        "blueprints":      "blueprint",
+        "playbooks":       "playbook",
+        "articles":        "article",
+        "videos":          "multimedia",
+        "webinars":        "webinar",
+        "media":           "media",
+    }
+    for segment, rtype in mapping.items():
+        if f"/{segment}/" in path or path.endswith(f"/{segment}"):
+            return rtype
+
+    # Fall back to template
+    if "multimedia" in template.lower():
+        return "multimedia"
+    return "article"
+
+
+def _derive_family(url: str) -> str:
+    """Derive document_family slug from URL slug."""
+    slug = urlparse(url).path.rstrip("/").split("/")[-1]
+    family = re.sub(r"[^a-z0-9_]", "_", slug.lower().replace("-", "_"))
+    return family[:50]
+
+
+def _parse_date(og_updated_time: str) -> str:
+    """Convert og:updated_time ISO string to YYYY-MM-DD."""
+    if not og_updated_time:
+        return ""
+    try:
+        from datetime import datetime
+        dt = datetime.fromisoformat(og_updated_time.replace("Z", "+00:00"))
+        return dt.strftime("%Y-%m-%d")
+    except (ValueError, TypeError):
+        return ""
+    

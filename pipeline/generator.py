@@ -25,13 +25,15 @@ from botocore.exceptions import ClientError, NoCredentialsError
 from openai import OpenAI
 
 from config import settings
+from langsmith import traceable
+from langsmith.wrappers import wrap_openai
 from pinecone import Pinecone
 from cache.factory import cache
 from cache.memory import MemoryCache
 
 log = logging.getLogger(__name__)
 
-_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+_client = wrap_openai(OpenAI(api_key=settings.OPENAI_API_KEY))
 
 # ── Amazon Comprehend client ──────────────────────────────────────
 # Auth via EC2 IAM role — no API key needed
@@ -165,6 +167,7 @@ def prepare_query(query: str) -> tuple[str, str]:
     return translated, detected_lang
 
 
+@traceable(name="generate-answer", run_type="llm")
 def generate_answer(query: str, context: str, detected_lang: str = "en") -> dict:
     """
     Generate a cited answer using GPT-4o.
@@ -242,6 +245,7 @@ No markdown, no explanation outside the JSON.
 """
 
 
+@traceable(name="summarise-document", run_type="llm")
 def summarise_document(filename: str) -> dict:
     """
     Generate AI summary for a document using the rag-summary index.

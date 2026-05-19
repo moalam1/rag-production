@@ -65,4 +65,4 @@ class MemoryCache(BaseCache):
         """Deterministic cache key from any serialisable data."""
         raw = json.dumps(data, sort_keys=True, default=str)
         digest = hashlib.sha256(raw.encode()).hexdigest()[:16]
-        return f"{namespace}:{digest}"
+        return f"rag:{namespace}:{digest}"

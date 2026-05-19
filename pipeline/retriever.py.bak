@@ -1,14 +1,7 @@
 """
 pipeline/retriever.py — Pinecone retrieval across all namespaces.
-
 Pinecone serverless does NOT search across namespaces automatically.
 We query each namespace separately and merge by score.
-
-Fixes applied:
-  1. is_latest filter changed from string "true" to boolean True
-  2. Removed fallback query that bypassed the is_latest filter entirely
-     (old code re-queried without filter on empty results — leaking deprecated chunks)
-  3. Filter now correctly blocks Phase 1 / deprecated chunks from all results
 """
 import json
 import logging
@@ -26,33 +19,25 @@ _index = _pc.Index(settings.PINECONE_INDEX)
 RETRIEVAL_CACHE_TTL = min(settings.CACHE_TTL_SECONDS, 600)
 ALL_NAMESPACES      = ["technical", "business", "media"]
 
-# ── is_latest filter ──────────────────────────────────────────────────────────
-# MUST be boolean True — Pinecone metadata filters use native bool.
-# String "true" never matches {"$eq": True} and allows deprecated chunks through.
-_LATEST_FILTER = {"is_latest": {"$eq": True}}
-
 
 def _query_namespace(vector: list, namespace: str, top_k: int) -> list[dict]:
-    """
-    Query a single Pinecone namespace.
-
-    Always applies is_latest filter — never falls back to an unfiltered query.
-    If a namespace returns no results it simply contributes nothing to the
-    merged result set; the caller handles empty gracefully.
-    """
     try:
         results = _index.query(
             vector=vector,
             top_k=top_k,
             include_metadata=True,
             namespace=namespace,
-            filter=_LATEST_FILTER,          # FIX 1+2: boolean, no fallback
+            filter={"is_latest": {"$eq": "true"}},
         )
+        if not results.matches:
+            results = _index.query(
+                vector=vector,
+                top_k=top_k,
+                include_metadata=True,
+                namespace=namespace,
+            )
     except Exception as e:
         log.warning("Pinecone query failed for namespace '%s': %s", namespace, e)
-        return []
-
-    if not results.matches:
         return []
 
     chunks = []
@@ -75,46 +60,32 @@ def _query_namespace(vector: list, namespace: str, top_k: int) -> list[dict]:
 
         filename      = metadata.get("filename")       or inner_meta.get("filename", "unknown")
         clean_name    = (metadata.get("clean_name")    or inner_meta.get("clean_name")
-                         or filename.replace("_", " ").replace("-", " ")
-                                    .replace(".pdf", "").title())
+                         or filename.replace("_", " ").replace("-", " ").replace(".pdf", "").title())
         page          = (metadata.get("page_label")    or metadata.get("page")
                          or inner_meta.get("page")     or inner_meta.get("page_label") or "?")
         resource_type = (metadata.get("resource_type") or inner_meta.get("resource_type", ""))
         page_url      = (metadata.get("page_url")      or inner_meta.get("page_url", ""))
         pdf_url       = (metadata.get("pdf_url")       or inner_meta.get("pdf_url", ""))
-        document_family = (metadata.get("document_family") or inner_meta.get("document_family", ""))
-        published_date  = (metadata.get("published_date")  or inner_meta.get("published_date", ""))
 
         chunks.append({
-            "id":              match.id,
-            "score":           match.score,
-            "text":            text,
-            "filename":        filename,
-            "clean_name":      clean_name,
-            "resource_type":   resource_type,
-            "page":            page,
-            "page_url":        page_url,
-            "pdf_url":         pdf_url,
-            "namespace":       namespace,
-            "document_family": document_family,
-            "published_date":  published_date,  # needed for freshness decay in reranker
+            "id":            match.id,
+            "score":         match.score,
+            "text":          text,
+            "filename":      filename,
+            "clean_name":    clean_name,
+            "resource_type": resource_type,
+            "page":          page,
+            "page_url":      page_url,
+            "pdf_url":       pdf_url,
+            "namespace":     namespace,
         })
     return chunks
 
 
 @traceable(name="retrieve-chunks", run_type="retriever")
 def retrieve_chunks(query_embedding: list[float], namespace: str = None) -> list[dict]:
-    """
-    Retrieve chunks from Pinecone across all (or a specific) namespace.
-
-    Only returns chunks where is_latest=True. Deprecated / Phase 1 chunks
-    are completely excluded — the filter is applied at query time, not
-    post-filtered, so Pinecone never returns stale vectors.
-    """
     c   = cache()
-    key = MemoryCache.make_key(
-        "retrieve", {"dims": query_embedding[:8], "ns": namespace or "all"}
-    )
+    key = MemoryCache.make_key("retrieve", {"dims": query_embedding[:8], "ns": namespace or "all"})
 
     cached = c.get(key)
     if cached is not None:
@@ -122,8 +93,7 @@ def retrieve_chunks(query_embedding: list[float], namespace: str = None) -> list
         return cached
 
     namespaces_to_query = (
-        [namespace.strip()]
-        if namespace and namespace.strip().lower() not in ("", "all")
+        [namespace.strip()] if namespace and namespace.strip().lower() not in ("", "all")
         else ALL_NAMESPACES
     )
 
@@ -132,17 +102,13 @@ def retrieve_chunks(query_embedding: list[float], namespace: str = None) -> list
     all_chunks = []
     for ns in namespaces_to_query:
         ns_chunks = _query_namespace(query_embedding, ns, settings.TOP_K_RETRIEVE)
-        log.debug("Namespace '%s': %d chunks (all is_latest=True)", ns, len(ns_chunks))
+        log.debug("Namespace '%s': %d chunks", ns, len(ns_chunks))
         all_chunks.extend(ns_chunks)
 
     all_chunks.sort(key=lambda x: x["score"], reverse=True)
     top_chunks = all_chunks[:settings.TOP_K_RETRIEVE]
 
-    log.info(
-        "Retrieved %d chunks from %s (is_latest filter active)",
-        len(top_chunks), namespaces_to_query
-    )
+    log.info("Retrieved %d chunks from %s", len(top_chunks), namespaces_to_query)
 
     c.set(key, top_chunks, ttl=RETRIEVAL_CACHE_TTL)
     return top_chunks
-    

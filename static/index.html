@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equinix RAG Analytics</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;min-height:100vh}
+.topbar{background:#111;border-bottom:1px solid #222;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:11px;font-weight:700;color:#c2410c;letter-spacing:0.1em}
+.title{font-size:15px;font-weight:500;color:#e5e5e5;margin-left:12px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#374151;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.live-label{font-size:12px;color:#6b7280;margin-left:6px}
+.refresh-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid #333;background:transparent;color:#9ca3af;cursor:pointer;margin-left:10px}
+.refresh-btn:hover{background:#1a1a1a;color:#e5e5e5}
+.main{max-width:1200px;margin:0 auto;padding:24px}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.metric{background:#111;border:1px solid #222;border-radius:10px;padding:16px}
+.metric-label{font-size:12px;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em}
+.metric-value{font-size:28px;font-weight:600;color:#e5e5e5}
+.metric-sub{font-size:11px;color:#4b5563;margin-top:4px}
+.metric.accent{border-color:#c2410c33}
+.metric.accent .metric-value{color:#c2410c}
+.grid-3{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.card{background:#111;border:1px solid #222;border-radius:10px;padding:18px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.query-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #1a1a1a}
+.query-row:last-child{border-bottom:none}
+.query-rank{font-size:11px;color:#4b5563;width:18px;text-align:center;flex-shrink:0}
+.query-text{flex:1;font-size:13px;color:#d1d5db;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.query-bar-wrap{width:80px;height:4px;background:#1a1a1a;border-radius:2px;flex-shrink:0}
+.query-bar{height:100%;border-radius:2px;background:#c2410c}
+.query-count{font-size:12px;color:#6b7280;width:28px;text-align:right;flex-shrink:0;font-weight:500}
+.ns-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1a1a1a}
+.ns-row:last-child{border-bottom:none}
+.ns-label{font-size:13px;color:#d1d5db;width:80px;flex-shrink:0}
+.ns-bar-wrap{flex:1;height:6px;background:#1a1a1a;border-radius:3px}
+.ns-bar{height:100%;border-radius:3px}
+.ns-count{font-size:12px;color:#6b7280;width:36px;text-align:right;flex-shrink:0}
+.lang-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;font-size:12px;margin:3px;border:1px solid #222;background:#1a1a1a;color:#d1d5db}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #333;border-top-color:#c2410c;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.footer{font-size:11px;color:#374151;text-align:center;margin-top:24px}
+@media(max-width:700px){.metric-grid{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:1fr}}
+@media(max-width:400px){.metric-grid{grid-template-columns:1fr}.topbar{flex-direction:column;gap:8px;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div style="display:flex;align-items:center">
+    <span class="logo">EQUINIX</span>
+    <span style="color:#333;margin:0 12px">|</span>
+    <span class="title">RAG Search Analytics</span>
+  </div>
+  <div style="display:flex;align-items:center">
+    <span class="live-dot" id="live-dot"></span>
+    <span class="live-label" id="live-label">Connecting...</span>
+    <button class="refresh-btn" onclick="loadData()">&#8635; Refresh</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="metric-grid">
+    <div class="metric accent"><div class="metric-label">Total searches</div><div class="metric-value" id="m-total">—</div><div class="metric-sub">all time</div></div>
+    <div class="metric"><div class="metric-label">Cache hit rate</div><div class="metric-value" id="m-cache">—</div><div class="metric-sub" id="m-cache-sub">—</div></div>
+    <div class="metric"><div class="metric-label">Unique queries</div><div class="metric-value" id="m-unique">—</div><div class="metric-sub">tracked</div></div>
+    <div class="metric"><div class="metric-label">Languages</div><div class="metric-value" id="m-langs">—</div><div class="metric-sub">detected</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">&#9641; Hourly search volume (last 24h)</div>
+    <div style="position:relative;height:160px">
+      <canvas id="hourly-chart" role="img" aria-label="Hourly search volume chart"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">&#8593; Top queries <span id="q-count" style="font-weight:400;color:#4b5563"></span></div>
+      <div id="top-queries"><div style="color:#4b5563;font-size:13px">Loading...</div></div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">&#9660; Namespace usage</div>
+        <div id="ns-chart"><div style="color:#4b5563;font-size:13px">Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">&#9670; Languages</div>
+        <div id="lang-chips"><div style="color:#4b5563;font-size:13px">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer" id="footer-ts"></div>
+</div>
+
+<script>
+const API_URL = 'https://lxhxqqh3r8.execute-api.us-east-1.amazonaws.com';
+const API_KEY = '0f26fdfa94f790ceccb2f4b37c98e142c43568ca567963f68ef81560a5c788fb';
+const NS_COLORS = {all:'#c2410c',technical:'#185FA5',business:'#0F6E56',media:'#854F0B'};
+let _chart = null;
+
+async function loadData() {
+  document.getElementById('live-dot').style.background = '#f59e0b';
+  document.getElementById('live-label').textContent = 'Loading...';
+  try {
+    const [sRes, qRes] = await Promise.all([
+      fetch(API_URL+'/api/v1/analytics/stats',       {headers:{'X-API-Key':API_KEY}}),
+      fetch(API_URL+'/api/v1/analytics/top-queries', {headers:{'X-API-Key':API_KEY}}),
+    ]);
+    const stats   = await sRes.json();
+    const qData   = await qRes.json();
+    render(stats, qData.queries||[]);
+    document.getElementById('live-dot').style.background = '#16a34a';
+    document.getElementById('live-label').textContent = 'Live';
+  } catch(e) {
+    document.getElementById('live-dot').style.background = '#dc2626';
+    document.getElementById('live-label').textContent = 'Error';
+  }
+}
+
+function render(stats, queries) {
+  document.getElementById('m-total').textContent   = (stats.total_queries||0).toLocaleString();
+  document.getElementById('m-cache').textContent   = (stats.cache_hit_rate||0).toFixed(1)+'%';
+  document.getElementById('m-cache-sub').textContent = (stats.cached_queries||0)+' cached';
+  document.getElementById('m-unique').textContent  = queries.length;
+  document.getElementById('m-langs').textContent   = Object.keys(stats.top_languages||{}).length;
+
+  const hourly = (stats.hourly_volume||[]).slice(-24);
+  const maxH   = Math.max(...hourly.map(h=>h.count),1);
+  const ctx    = document.getElementById('hourly-chart').getContext('2d');
+  if (_chart) _chart.destroy();
+  _chart = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: hourly.map(h=>h.hour.slice(11,16)),
+      datasets:[{data:hourly.map(h=>h.count),backgroundColor:hourly.map(h=>h.count===maxH?'#c2410c':'#374151'),borderRadius:3,borderSkipped:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#4b5563',font:{size:11},maxTicksLimit:12},grid:{display:false},border:{display:false}},
+              y:{ticks:{color:'#4b5563',font:{size:11},stepSize:1},grid:{color:'#1a1a1a'},border:{display:false}}}}
+  });
+
+  const maxQ = queries.length ? queries[0].count : 1;
+  document.getElementById('q-count').textContent = '('+queries.length+')';
+  document.getElementById('top-queries').innerHTML = queries.slice(0,10).map((q,i)=>`
+    <div class="query-row">
+      <div class="query-rank">${i+1}</div>
+      <div class="query-text" title="${q.query}">${q.query}</div>
+      <div class="query-bar-wrap"><div class="query-bar" style="width:${Math.round(q.count/maxQ*100)}%"></div></div>
+      <div class="query-count">${q.count}</div>
+    </div>`).join('') || '<div style="color:#4b5563;font-size:13px">No queries yet</div>';
+
+  const nsEntries = Object.entries(stats.namespaces||{}).sort((a,b)=>b[1]-a[1]);
+  const nsTotal   = nsEntries.reduce((s,[,v])=>s+v,0)||1;
+  document.getElementById('ns-chart').innerHTML = nsEntries.map(([ns,cnt])=>`
+    <div class="ns-row">
+      <div class="ns-label">${ns}</div>
+      <div class="ns-bar-wrap"><div class="ns-bar" style="width:${Math.round(cnt/nsTotal*100)}%;background:${NS_COLORS[ns]||'#534AB7'}"></div></div>
+      <div class="ns-count">${cnt}</div>
+    </div>`).join('') || '<div style="color:#4b5563;font-size:13px">No data</div>';
+
+  const langEntries = Object.entries(stats.top_languages||{}).sort((a,b)=>b[1]-a[1]);
+  const langTotal   = langEntries.reduce((s,[,v])=>s+v,0)||1;
+  document.getElementById('lang-chips').innerHTML = langEntries.map(([lang,cnt])=>`
+    <span class="lang-chip"><strong>${lang.toUpperCase()}</strong> ${Math.round(cnt/langTotal*100)}% <span style="color:#4b5563">(${cnt})</span></span>
+  `).join('') || '<div style="color:#4b5563;font-size:13px">No data</div>';
+
+  document.getElementById('footer-ts').textContent = 'Last updated: '+new Date().toLocaleString();
+}
+
+loadData();
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>

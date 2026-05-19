@@ -7,8 +7,6 @@ from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel, Field
 
 from config import settings
-from limiter import limiter
-from starlette.requests import Request
 import guardrails.input  as input_guard
 import guardrails.output as output_guard
 from pipeline.embedder  import embed_text
@@ -75,9 +73,7 @@ async def _run_pipeline(query: str, namespace: str = None, source: str = "unknow
     return {"result": result, "reranked": reranked, "detected_lang": detected_lang}
 
 @router.post("/search", response_model=SearchResponse)
-@limiter.limit("20/minute")
-@limiter.limit("100/day")
-async def search(req: SearchRequest, request: Request, _: str = Depends(verify_api_key)):
+async def search(req: SearchRequest, _: str = Depends(verify_api_key)):
 
     # ── Log query metadata to LangSmith ──────────────────────────
     from langsmith import get_current_run_tree
@@ -210,9 +206,7 @@ class SummariseResponse(BaseModel):
     error:          str = ""
 
 @router.post("/summarise", response_model=SummariseResponse)
-@limiter.limit("20/minute")
-@limiter.limit("100/day")
-async def summarise(req: SummariseRequest, request: Request, _: str = Depends(verify_api_key)):
+async def summarise(req: SummariseRequest, _: str = Depends(verify_api_key)):
     from pipeline.generator import summarise_document
     result = summarise_document(req.filename)
     if "error" in result:

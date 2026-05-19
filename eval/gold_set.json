@@ -1,0 +1,402 @@
+[
+  {
+    "id": "q001",
+    "question": "What is Equinix Fabric?",
+    "ground_truth": "Equinix Fabric is a software-defined interconnection platform that enables direct, low-latency connections between enterprises, clouds, networks, and service providers across Equinix's global data center footprint.",
+    "relevant_doc": "Equinix Fabric™ Data Sheet",
+    "category": "product",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q002",
+    "question": "What is an IBX data center?",
+    "ground_truth": "An IBX (International Business Exchange) is Equinix's brand for its colocation data centers, which provide carrier-neutral, secure facilities where businesses can connect to networks, clouds, and partners.",
+    "relevant_doc": "Data Center Dictionary",
+    "category": "definition",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q003",
+    "question": "What is an xScale data center?",
+    "ground_truth": "xScale data centers are large-scale hyperscale facilities built by Equinix to meet the demands of hyperscale cloud providers, offering high-density power and compute capacity beyond standard IBX specifications.",
+    "relevant_doc": "xScale Data Centers World Map",
+    "category": "product",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q004",
+    "question": "How does Equinix support AI infrastructure deployments?",
+    "ground_truth": "Equinix supports AI infrastructure by providing colocation, interconnection, and private AI solutions including NVIDIA DGX systems as a managed service, enabling enterprises to deploy AI workloads close to data sources and cloud providers.",
+    "relevant_doc": "Accelerate innovation with AI infrastructure deployments at Equinix",
+    "category": "ai",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q005",
+    "question": "What is Equinix Private AI?",
+    "ground_truth": "Equinix Private AI is a managed service offering that provides dedicated AI compute resources, including NVIDIA DGX systems, with end-to-end management and direct connectivity to public clouds and enterprise data.",
+    "relevant_doc": "Accelerate innovation with AI infrastructure deployments at Equinix",
+    "category": "ai",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q006",
+    "question": "How does Equinix Fabric Intelligence work?",
+    "ground_truth": "Equinix Fabric Intelligence is an AI-native control plane that automates network operations through policy-driven controls, providing automated monitoring, performance optimization, and programmable connectivity for distributed AI workloads.",
+    "relevant_doc": "Equinix Fabric Intelligence",
+    "category": "product",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q007",
+    "question": "What connectivity options does Equinix Fabric provide?",
+    "ground_truth": "Equinix Fabric provides both virtual connectivity (provisioned in minutes via software-defined connections) and physical connectivity (Cross Connects) for the highest level of security and performance.",
+    "relevant_doc": "Equinix Fabric™ Data Sheet",
+    "category": "product",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q008",
+    "question": "How does Equinix help financial services firms with data sovereignty?",
+    "ground_truth": "Equinix helps financial services firms achieve data sovereignty by providing private, direct connections to clouds and partners within specific regions, enabling compliance with local data residency regulations while maintaining multicloud flexibility.",
+    "relevant_doc": "Financial data sovereignty and privacy for AI force a rethink of multicloud connectivity",
+    "category": "financial",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q009",
+    "question": "What is the difference between cloud-first and private-first IT infrastructure?",
+    "ground_truth": "Cloud-first means defaulting to public cloud for all workloads, while private-first means running sensitive or latency-critical workloads on dedicated private infrastructure at Equinix colocation facilities, using public cloud selectively for appropriate workloads.",
+    "relevant_doc": "From cloud-first to private-first in financial IT infrastructure",
+    "category": "strategy",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q010",
+    "question": "How does Equinix interconnection help optimize AI network performance?",
+    "ground_truth": "Equinix distributed interconnection hubs reduce latency by placing AI workloads and data close to each other and to cloud providers, enabling high-throughput, low-latency data movement required for distributed AI training and inference.",
+    "relevant_doc": "Optimize AI network performance with distributed interconnection hubs",
+    "category": "ai",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q011",
+    "question": "How did Unicred use Equinix infrastructure during a severe weather event?",
+    "ground_truth": "Unicred leveraged Equinix's resilient data center infrastructure and interconnection capabilities to maintain zero operational impact during a severe weather catastrophe, ensuring business continuity through redundant connectivity and colocation.",
+    "relevant_doc": "Unicred overcomes severe weather catastrophe with zero operational impact",
+    "category": "case-study",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q012",
+    "question": "How does Equinix support Oracle Cloud connectivity?",
+    "ground_truth": "Equinix provides direct, low-latency connections to Oracle Cloud through Equinix Fabric and physical Cross Connects, enabling enterprises to move data securely between on-premises infrastructure and Oracle Cloud services.",
+    "relevant_doc": "Oracle Cloud and Equinix",
+    "category": "cloud",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q013",
+    "question": "What is hybrid multicloud networking?",
+    "ground_truth": "Hybrid multicloud networking connects on-premises infrastructure with multiple public cloud providers through private, dedicated interconnections, enabling workload portability, data sovereignty, and optimized performance across cloud environments.",
+    "relevant_doc": "hybrid multicloud networking",
+    "category": "definition",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q014",
+    "question": "How can enterprises protect sensitive data while using AI?",
+    "ground_truth": "Enterprises can protect sensitive data while using AI by keeping data within private infrastructure at Equinix, using secure direct connections to AI services rather than public internet, and applying data sovereignty controls to prevent unauthorized data movement.",
+    "relevant_doc": "Leverage AI while protecting sensitive data",
+    "category": "ai",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q015",
+    "question": "What is an interconnection-oriented architecture?",
+    "ground_truth": "An interconnection-oriented architecture places IT infrastructure at the intersection of networks, clouds, and partners, enabling direct private connectivity between all parties rather than routing traffic through the public internet.",
+    "relevant_doc": "Data Center Dictionary",
+    "category": "definition",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q016",
+    "question": "What is colocation?",
+    "ground_truth": "Colocation is the practice of housing privately-owned servers and networking equipment in a third-party data center facility, sharing power, cooling, physical security, and network connectivity infrastructure.",
+    "relevant_doc": "Data Center Dictionary",
+    "category": "definition",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q017",
+    "question": "What is a Cross Connect at Equinix?",
+    "ground_truth": "A Cross Connect is a physical cable connection between two customers within the same Equinix IBX data center, providing a dedicated, secure, low-latency link without traffic traversing the public internet.",
+    "relevant_doc": "Data Center Dictionary",
+    "category": "definition",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q018",
+    "question": "How does Equinix support distributed AI workloads?",
+    "ground_truth": "Equinix supports distributed AI workloads by providing global interconnection hubs where compute, data, and AI services can be co-located and directly connected, reducing data movement costs and latency across distributed training and inference pipelines.",
+    "relevant_doc": "Distributed AI workloads",
+    "category": "ai",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q019",
+    "question": "Where are Equinix xScale data centers located?",
+    "ground_truth": "Equinix xScale data centers are located across major regions including the Americas, Europe, Middle East, Africa, and Asia-Pacific, supporting hyperscale cloud providers in key metropolitan markets globally.",
+    "relevant_doc": "xScale Data Centers World Map",
+    "category": "product",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q020",
+    "question": "What is MACsec and how does Equinix support it?",
+    "ground_truth": "MACsec (Media Access Control Security) is a network security standard that provides encryption at the data link layer. Equinix Fabric supports MACsec over Ethernet Private LAN and WAN connections, enabling encrypted connectivity for security-sensitive workloads.",
+    "relevant_doc": "Equinix Fabric™ Data Sheet",
+    "category": "security",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q021",
+    "question": "How does Equinix help enterprises move from public cloud to private infrastructure?",
+    "ground_truth": "Equinix enables enterprises to repatriate workloads from public cloud to private colocation infrastructure at IBX data centers, maintaining cloud connectivity through direct on-ramps while reducing costs and improving control over sensitive data.",
+    "relevant_doc": "From cloud-first to private-first in financial IT infrastructure",
+    "category": "strategy",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q022",
+    "question": "What is peering in the context of Equinix?",
+    "ground_truth": "Peering at Equinix refers to the direct exchange of internet traffic between networks at Internet Exchange Points (IXPs) within IBX data centers, reducing latency and transit costs by bypassing public internet routing.",
+    "relevant_doc": "Data Center Dictionary",
+    "category": "definition",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q023",
+    "question": "How does Equinix Fabric Intelligence improve network automation?",
+    "ground_truth": "Equinix Fabric Intelligence improves network automation through AI-driven policy controls that automatically adjust connectivity based on performance metrics, reducing manual intervention and enabling self-healing network operations.",
+    "relevant_doc": "Equinix Fabric Intelligence",
+    "category": "product",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q024",
+    "question": "What are the benefits of using Equinix for financial services multicloud?",
+    "ground_truth": "Financial services firms benefit from Equinix multicloud connectivity through improved data sovereignty compliance, reduced latency to trading systems, secure private connections to multiple cloud providers, and resilient infrastructure that meets regulatory requirements.",
+    "relevant_doc": "Financial data sovereignty and privacy for AI force a rethink of multicloud connectivity",
+    "category": "financial",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q025",
+    "question": "What is an Internet Exchange Point?",
+    "ground_truth": "An Internet Exchange Point (IXP) is a physical infrastructure where multiple internet service providers and networks interconnect to exchange traffic directly, improving routing efficiency and reducing latency.",
+    "relevant_doc": "Data Center Dictionary",
+    "category": "definition",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q026",
+    "question": "How does Equinix ensure business continuity?",
+    "ground_truth": "Equinix ensures business continuity through redundant power systems, resilient network connectivity, physically secure IBX facilities, and geographically distributed data centers that allow workload failover across regions.",
+    "relevant_doc": "Unicred overcomes severe weather catastrophe with zero operational impact",
+    "category": "reliability",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q027",
+    "question": "What is the Equinix global digital infrastructure footprint?",
+    "ground_truth": "Equinix operates over 240 data centers across more than 70 metros in 33 countries, connecting thousands of networks, cloud providers, and enterprises through its global interconnection platform.",
+    "relevant_doc": "xScale Data Centers World Map",
+    "category": "product",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q028",
+    "question": "How does private AI differ from public cloud AI?",
+    "ground_truth": "Private AI runs dedicated AI compute infrastructure within Equinix colocation facilities under the enterprise's control, while public cloud AI uses shared compute resources managed by cloud providers. Private AI offers better data security, predictable performance, and compliance control.",
+    "relevant_doc": "Accelerate innovation with AI infrastructure deployments at Equinix",
+    "category": "ai",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q029",
+    "question": "What connectivity speed does Equinix Fabric support?",
+    "ground_truth": "Equinix Fabric supports virtual connections from 50 Mbps up to 10 Gbps, with physical Cross Connect options for dedicated high-bandwidth connectivity requirements.",
+    "relevant_doc": "Equinix Fabric™ Data Sheet",
+    "category": "product",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q030",
+    "question": "How does Equinix support edge computing?",
+    "ground_truth": "Equinix supports edge computing by providing distributed IBX data centers close to end users and devices, enabling low-latency processing at the network edge while maintaining connectivity to core cloud and enterprise infrastructure.",
+    "relevant_doc": "Boundless connectivity, anywhere in the world",
+    "category": "product",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q031",
+    "question": "What is software-defined networking at Equinix?",
+    "ground_truth": "Software-defined networking at Equinix refers to the ability to provision, manage, and modify network connections programmatically through APIs and the Equinix Fabric portal, without requiring physical cabling changes.",
+    "relevant_doc": "Equinix Fabric™ Data Sheet",
+    "category": "definition",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q032",
+    "question": "How does Equinix help reduce AI training latency?",
+    "ground_truth": "Equinix reduces AI training latency by co-locating GPU compute, training data, and model storage within the same or directly connected facilities, eliminating bottlenecks from data movement over the public internet.",
+    "relevant_doc": "Optimize AI network performance with distributed interconnection hubs",
+    "category": "ai",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q033",
+    "question": "What is the Equinix ecosystem?",
+    "ground_truth": "The Equinix ecosystem is a global community of over 10,000 companies including cloud providers, network operators, financial institutions, and enterprises that are directly interconnected within Equinix IBX data centers.",
+    "relevant_doc": "Boundless connectivity, anywhere in the world",
+    "category": "product",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q034",
+    "question": "How does Equinix support Oracle Cloud infrastructure customers?",
+    "ground_truth": "Equinix provides dedicated Oracle Cloud on-ramps through Equinix Fabric and Cross Connects, enabling Oracle Cloud Infrastructure customers to connect directly to OCI regions from Equinix IBX facilities with low latency and high security.",
+    "relevant_doc": "Oracle Cloud and Equinix",
+    "category": "cloud",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q035",
+    "question": "What is data gravity and how does Equinix address it?",
+    "ground_truth": "Data gravity describes how large datasets attract applications and services to co-locate near the data. Equinix addresses data gravity by providing interconnection hubs where data, applications, and cloud services can be co-located and directly connected.",
+    "relevant_doc": "Data Center Dictionary",
+    "category": "definition",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q036",
+    "question": "How does Equinix help with AI data pipeline performance?",
+    "ground_truth": "Equinix improves AI data pipeline performance by providing direct, high-bandwidth connections between data sources, storage systems, and AI compute resources, reducing data transfer time and enabling faster model training cycles.",
+    "relevant_doc": "Distributed AI workloads",
+    "category": "ai",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q037",
+    "question": "What security certifications does Equinix hold?",
+    "ground_truth": "Equinix data centers hold multiple security and compliance certifications including SOC 1 and SOC 2, ISO 27001, PCI DSS, and HIPAA compliance, providing enterprises with auditable security controls for regulated workloads.",
+    "relevant_doc": "Data Center Dictionary",
+    "category": "security",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q038",
+    "question": "How does Equinix Fabric Intelligence handle network policy?",
+    "ground_truth": "Equinix Fabric Intelligence uses AI-driven policy engines to define, enforce, and automate network policies across connections, enabling enterprises to set rules for traffic routing, security, and performance that are automatically applied.",
+    "relevant_doc": "Equinix Fabric Intelligence",
+    "category": "product",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q039",
+    "question": "What is multicloud and why does Equinix support it?",
+    "ground_truth": "Multicloud is the use of services from multiple cloud providers simultaneously. Equinix supports multicloud by providing direct on-ramps to all major cloud providers within the same facility, enabling enterprises to avoid vendor lock-in and optimize workload placement.",
+    "relevant_doc": "hybrid multicloud networking",
+    "category": "strategy",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q040",
+    "question": "How does Equinix help financial institutions meet regulatory requirements?",
+    "ground_truth": "Equinix helps financial institutions meet regulatory requirements by providing data residency controls, private connectivity that keeps data within specific jurisdictions, compliant colocation facilities, and audit-ready infrastructure documentation.",
+    "relevant_doc": "Financial data sovereignty and privacy for AI force a rethink of multicloud connectivity",
+    "category": "financial",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q041",
+    "question": "What is network latency and how does Equinix minimize it?",
+    "ground_truth": "Network latency is the time delay for data to travel between two points. Equinix minimizes latency by co-locating interconnected parties within the same IBX facility or directly connected facilities, replacing long internet hops with short physical connections.",
+    "relevant_doc": "Data Center Dictionary",
+    "category": "definition",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q042",
+    "question": "How does Equinix support NVIDIA GPU deployments for AI?",
+    "ground_truth": "Equinix supports NVIDIA GPU deployments through its Private AI offering, providing NVIDIA DGX systems as a managed service within IBX colocation facilities, with direct connectivity to enterprise data and cloud services.",
+    "relevant_doc": "Accelerate innovation with AI infrastructure deployments at Equinix",
+    "category": "ai",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q043",
+    "question": "What is the benefit of Equinix interconnection for cloud on-ramps?",
+    "ground_truth": "Equinix cloud on-ramps provide direct, private connectivity to major cloud providers including AWS, Azure, Google Cloud, and Oracle Cloud, offering lower latency, higher bandwidth, and more predictable performance than public internet connections.",
+    "relevant_doc": "Boundless connectivity, anywhere in the world",
+    "category": "cloud",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q044",
+    "question": "How does Equinix protect data sovereignty for AI workloads?",
+    "ground_truth": "Equinix protects data sovereignty for AI workloads by enabling enterprises to keep sensitive training data and model outputs within specific geographic regions, using private connections that prevent data from crossing jurisdictional boundaries.",
+    "relevant_doc": "Leverage AI while protecting sensitive data",
+    "category": "ai",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q045",
+    "question": "What is a virtual connection in Equinix Fabric?",
+    "ground_truth": "A virtual connection in Equinix Fabric is a software-defined network link provisioned through the Equinix portal or API, connecting two parties within or across Equinix facilities without requiring physical cabling.",
+    "relevant_doc": "Equinix Fabric™ Data Sheet",
+    "category": "product",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q046",
+    "question": "How does Equinix support financial services trading infrastructure?",
+    "ground_truth": "Equinix supports financial trading infrastructure by providing ultra-low latency cross-connects between trading firms, exchanges, and market data providers within the same IBX facility, enabling microsecond-level order execution.",
+    "relevant_doc": "From cloud-first to private-first in financial IT infrastructure",
+    "category": "financial",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q047",
+    "question": "What is the Equinix Fabric API?",
+    "ground_truth": "The Equinix Fabric API allows enterprises to programmatically provision, manage, and monitor virtual connections and network services, enabling automation of connectivity workflows and integration with DevOps pipelines.",
+    "relevant_doc": "Equinix Fabric™ Data Sheet",
+    "category": "product",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q048",
+    "question": "How did Unicred benefit from Equinix infrastructure resilience?",
+    "ground_truth": "Unicred achieved zero operational impact during a severe weather disaster by leveraging Equinix's resilient data center infrastructure, which provided continuous uptime, redundant power, and maintained all critical banking services throughout the event.",
+    "relevant_doc": "Unicred overcomes severe weather catastrophe with zero operational impact",
+    "category": "case-study",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q049",
+    "question": "What is distributed interconnection and why does it matter for AI?",
+    "ground_truth": "Distributed interconnection means placing network exchange points close to where data and compute resources are located. For AI, this matters because it enables fast data movement between distributed training nodes, reduces bottlenecks, and lowers the cost of moving large datasets.",
+    "relevant_doc": "Optimize AI network performance with distributed interconnection hubs",
+    "category": "ai",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q050",
+    "question": "What does boundless connectivity mean at Equinix?",
+    "ground_truth": "Boundless connectivity at Equinix means the ability to connect to any network, cloud, partner, or enterprise globally through Equinix's interconnected platform, without geographic constraints, enabling seamless digital experiences worldwide.",
+    "relevant_doc": "Boundless connectivity, anywhere in the world",
+    "category": "product",
+    "difficulty": "easy"
+  }
+]

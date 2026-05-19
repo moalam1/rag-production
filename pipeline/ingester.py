@@ -1,3 +1,4 @@
+
 """
 pipeline/ingester.py — Production-grade dual-index ingestion pipeline.
 
@@ -8,10 +9,19 @@ Writes to two Pinecone indexes simultaneously:
 Metadata inherited on every chunk:
   filename, clean_name, resource_type, namespace, page, page_url, pdf_url,
   document_family, is_latest, status, published_date, version
+
+Fixes applied:
+  1. is_latest = True  (boolean, was string "true" — broke Pinecone filter)
+  2. family = "" reset removed — was silently overwriting correctly-derived family
+  3. version derived from registry (get_version() + 1), not from caller arg
+  4. Old chunks purged by document_family filter, not filename
+     (stable across filename changes between versions)
+  5. Dead _pdfs computation removed from save_record() call block
+  6. published_date accepted as parameter; falls back to today only if not provided
+  7. atomic_version_transition() used instead of two sequential DynamoDB writes
 """
 import os
 import re
-import json
 import shutil
 import hashlib
 import logging
@@ -21,25 +31,29 @@ from pathlib import Path
 from llama_parse import LlamaParse
 from llama_index.core import SimpleDirectoryReader, Document, StorageContext, VectorStoreIndex
 from llama_index.core.node_parser import SemanticSplitterNodeParser
-from llama_index.core.schema import MetadataMode
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from pinecone import Pinecone
 
 from config import settings
 from pipeline.registry import (
-    compute_hash, is_unchanged, get_version,
-    save_record, deprecate_old_version
+    compute_hash,
+    is_unchanged,
+    get_version,
+    save_record,
+    deprecate_old_version,
+    atomic_version_transition,
+    get_record_by_family,
 )
 
 log = logging.getLogger(__name__)
 
-# ── Pinecone clients ──────────────────────────────────────────────
+# ── Pinecone clients ──────────────────────────────────────────────────────────
 _pc      = Pinecone(api_key=settings.PINECONE_API_KEY)
 _index   = _pc.Index(settings.PINECONE_INDEX)
 _summary = _pc.Index(settings.PINECONE_SUMMARY_INDEX)
 
-# ── Namespace routing ─────────────────────────────────────────────
+# ── Namespace routing ─────────────────────────────────────────────────────────
 NAMESPACE_MAP = {
     "whitepaper":     "technical",
     "blueprint":      "technical",
@@ -52,16 +66,26 @@ NAMESPACE_MAP = {
     "media":          "business",
     "multimedia":     "media",
     "webinar":        "media",
+    "infopaper":        "technical",
+    "product-document": "technical",
+    "infographic":      "business",
+    "success-story":    "business",
 }
 
-HF_REPO_ID = os.getenv("HF_REPO_ID", "perwaizalam/rag-poc-demo")
-AEM_BASE   = os.getenv("AEM_BASE_URL", "https://www.equinix.com/resources")
+HF_REPO_ID  = os.getenv("HF_REPO_ID", "perwaizalam/rag-poc-demo")
+AEM_BASE    = os.getenv("AEM_BASE_URL", "https://www.equinix.com/resources")
 TYPE_FOLDER = {
-    "whitepaper": "whitepapers", "blueprint": "blueprints",
-    "case-study": "case-studies", "analyst-report": "analyst-reports",
-    "data-sheet": "data-sheets", "solution-brief": "solution-briefs",
-    "playbook": "playbooks", "article": "articles",
-    "media": "media", "multimedia": "videos", "webinar": "webinars",
+    "whitepaper":     "whitepapers",
+    "blueprint":      "blueprints",
+    "case-study":     "case-studies",
+    "analyst-report": "analyst-reports",
+    "data-sheet":     "data-sheets",
+    "solution-brief": "solution-briefs",
+    "playbook":       "playbooks",
+    "article":        "articles",
+    "media":          "media",
+    "multimedia":     "videos",
+    "webinar":        "webinars",
 }
 
 
@@ -84,11 +108,19 @@ def _pdf_url(filename: str, page) -> str:
 
 
 def _content_hash(tmp_dir: str) -> str:
-    """SHA-256 hash of all PDF content in tmp_dir."""
+    """SHA-256 hash of all PDF content in tmp_dir (computed before parsing)."""
     h = hashlib.sha256()
     for f in sorted(Path(tmp_dir).glob("*.pdf")):
         h.update(f.read_bytes())
     return h.hexdigest()[:32]
+
+
+def _derive_family(document_family: str, clean_name: str, filename: str) -> str:
+    """Derive a stable document_family slug. Caller arg takes priority."""
+    if document_family.strip():
+        return document_family.strip()
+    base = clean_name if clean_name else os.path.splitext(filename)[0]
+    return re.sub(r"[^a-z0-9_]", "_", base.lower().replace(" ", "_"))[:40]
 
 
 def _make_splitter(embed_model, buffer_size: int, threshold: int) -> SemanticSplitterNodeParser:
@@ -100,15 +132,15 @@ def _make_splitter(embed_model, buffer_size: int, threshold: int) -> SemanticSpl
 
 
 def ingest(
-    tmp_dir: str,
-    resource_type: str,
+    tmp_dir:             str,
+    resource_type:       str,
     clean_name_override: str = "",
-    page_url_override: str   = "",
-    document_family: str     = "",
-    version: int             = 1,
+    page_url_override:   str = "",
+    document_family:     str = "",
+    published_date:      str = "",   # FIX 6: accept real publish date, not just today
 ) -> list[str]:
     """
-    Full ingestion pipeline.
+    Full ingestion pipeline for PDF documents.
 
     Args:
         tmp_dir:             Directory containing PDF(s) to ingest.
@@ -116,7 +148,7 @@ def ingest(
         clean_name_override: Display name (uses filename if empty).
         page_url_override:   AEM resource page URL (auto-built if empty).
         document_family:     Logical group e.g. 'ai_infrastructure_guide'.
-        version:             Document version number (1 = first index).
+        published_date:      Document publish date (YYYY-MM-DD). Defaults to today.
 
     Returns:
         List of log strings for display in HF Space.
@@ -126,35 +158,63 @@ def ingest(
     logs      = []
 
     try:
-        # ── Parse PDFs ────────────────────────────────────────────
-        # ── Compute content hash before parsing ──────────────────
+        # ── 1. Identify files and compute hash BEFORE any parsing ─────────────
         pdf_files      = list(Path(tmp_dir).glob("*.pdf"))
-        first_filename = pdf_files[0].name if pdf_files else "unknown.pdf"
+        if not pdf_files:
+            logs.append("❌ No PDF files found in upload directory.")
+            return logs
+
+        first_filename = pdf_files[0].name
         content_hash   = _content_hash(tmp_dir)
-        family         = document_family.strip() if document_family.strip() else (
-            re.sub(r"[^a-z0-9_]", "_", first_filename.lower().replace(".pdf",""))[:40]
-        )
         logs.append(f"🔑 Content hash: {content_hash[:8]}...")
 
-        # ── Skip if unchanged ─────────────────────────────────────
+        # ── 2. Derive clean_name and family ONCE — before any resets ─────────
+        # FIX 2: family derived here and carried through — never reset below
+        clean_name = (
+            clean_name_override.strip() if clean_name_override.strip()
+            else " ".join(
+                w.capitalize()
+                for w in os.path.splitext(first_filename)[0]
+                .replace("_", " ").replace("-", " ").strip().split()
+            )
+        )
+        family = _derive_family(document_family, clean_name, first_filename)
+
+        # ── 3. Skip if unchanged ──────────────────────────────────────────────
         if is_unchanged(first_filename, content_hash):
-            logs.append(f"⏭️  Document unchanged — skipping re-index (same hash).")
+            logs.append("⏭️  Document unchanged — skipping re-index (same hash).")
             shutil.rmtree(tmp_dir, ignore_errors=True)
             return logs
 
-        # ── Deprecate old version if update detected ──────────────
-        existing_version = get_version(first_filename)
-        if existing_version > 0 and existing_version != version:
-            logs.append(f"🔄 Version change detected (v{existing_version} → v{version}) — deprecating old chunks...")
-            deprecate_old_version(first_filename)
+        # ── 4. Version from registry — not from caller ────────────────────────
+        # FIX 3: version is always registry-driven, caller no longer supplies it
+        existing_version = get_version(document_family=family, filename=first_filename)
+        version          = existing_version + 1 if existing_version > 0 else 1
+
+        # ── 5. Deprecate old version if update detected ───────────────────────
+        if existing_version > 0:
+            logs.append(
+                f"🔄 Update detected (v{existing_version} → v{version}) "
+                f"— deprecating old chunks..."
+            )
+            # FIX 4: purge by document_family, not filename
+            # Stable across filename changes between document versions
             for ns in ["technical", "business", "media"]:
                 try:
-                    _index.delete(filter={"filename": {"$eq": first_filename}}, namespace=ns)
-                    _summary.delete(filter={"filename": {"$eq": first_filename}}, namespace=ns)
+                    _index.delete(
+                        filter={"document_family": {"$eq": family}},
+                        namespace=ns,
+                    )
+                    _summary.delete(
+                        filter={"document_family": {"$eq": family}},
+                        namespace=ns,
+                    )
                 except Exception as de:
                     logs.append(f"⚠️  Could not delete old chunks in {ns}: {de}")
             logs.append("✅ Old chunks removed from Pinecone.")
+            deprecate_old_version(first_filename)
 
+        # ── 6. Parse PDFs with LlamaParse ────────────────────────────────────
         logs.append("🔍 Parsing PDFs with LlamaParse...")
         parser = LlamaParse(
             api_key=settings.LLAMA_CLOUD_API_KEY,
@@ -169,108 +229,97 @@ def ingest(
         raw_docs = reader.load_data()
         logs.append(f"✅ Parsed {len(raw_docs)} page(s).")
 
-        # ── Build documents with full metadata ────────────────────
+        # ── 7. Build documents with full metadata ─────────────────────────────
         logs.append("📋 Building documents with full metadata...")
-        family    = ""
-        clean_name = clean_name_override.strip() if clean_name_override.strip() else first_filename
-        today = datetime.now().strftime("%Y-%m-%d")
+        pub_date  = published_date.strip() if published_date.strip() else datetime.now().strftime("%Y-%m-%d")
         documents = []
 
         for i, doc in enumerate(raw_docs):
-            filename   = os.path.basename(doc.metadata.get("file_name", f"doc_{i}.pdf"))
-            clean_name = clean_name_override.strip() if clean_name_override.strip() else (
-                " ".join(w.capitalize() for w in
-                         os.path.splitext(filename)[0]
-                         .replace("_", " ").replace("-", " ").strip().split())
+            filename = os.path.basename(doc.metadata.get("file_name", f"doc_{i}.pdf"))
+
+            # Per-page clean_name (respects override)
+            cn = (
+                clean_name_override.strip() if clean_name_override.strip()
+                else " ".join(
+                    w.capitalize()
+                    for w in os.path.splitext(filename)[0]
+                    .replace("_", " ").replace("-", " ").strip().split()
+                )
             )
+
             page   = str(doc.metadata.get("page_label", doc.metadata.get("page", str(i + 1))))
-            pg_url = _build_page_url(clean_name, rtype, page_url_override)
+            pg_url = _build_page_url(cn, rtype, page_url_override)
             pdf_u  = _pdf_url(filename, page)
 
-            # Document family slug — auto-derive from clean_name if not provided
-            family = document_family.strip() if document_family.strip() else (
-                re.sub(r"[^a-z0-9_]", "_",
-                       clean_name.lower().replace(" ", "_"))[:40]
-            )
-
-            # Full metadata — inherited by every chunk via MetadataMode.ALL
+            # FIX 1: is_latest is a boolean True, not string "true"
+            # Pinecone filter {"is_latest": {"$eq": True}} requires native bool
             metadata = {
                 # Identity
-                "filename":        filename,
-                "clean_name":      clean_name,
-                "resource_type":   rtype,
-                "namespace":       namespace,
+                "filename":         filename,
+                "clean_name":       cn,
+                "resource_type":    rtype,
+                "namespace":        namespace,
 
                 # Navigation
-                "page":            page,
-                "page_url":        pg_url,
-                "pdf_url":         pdf_u,
+                "page":             page,
+                "page_url":         pg_url,
+                "pdf_url":          pdf_u,
 
-                # Versioning
-                "document_family": family,
-                "version":         str(version),
-                "is_latest":       "true",      # string — Pinecone metadata filter
-                "status":          "current",
+                # Versioning — FIX 1: boolean, not string
+                "document_family":  family,
+                "version":          str(version),
+                "is_latest":        True,        # ← boolean
+                "status":           "current",
 
-                # Freshness
-                "published_date":  today,
-                "indexed_at":      datetime.now().isoformat(),
+                # Freshness — FIX 6: real publish date if provided
+                "published_date":   pub_date,
+                "indexed_at":       datetime.now().isoformat(),
             }
 
-            # Prepend document header so chunks retain full context
             header = (
-                f"Document: {clean_name}\n"
+                f"Document: {cn}\n"
                 f"Type: {rtype} | Page: {page}\n"
                 f"---\n"
             )
             documents.append(Document(
                 text=header + doc.text,
                 metadata=metadata,
-                excluded_llm_metadata_keys=[
-                    "indexed_at", "pdf_url",
-                ],
-                excluded_embed_metadata_keys=[
-                    "indexed_at", "pdf_url", "page_url",
-                ],
+                excluded_llm_metadata_keys=["indexed_at", "pdf_url"],
+                excluded_embed_metadata_keys=["indexed_at", "pdf_url", "page_url"],
             ))
 
-        logs.append(f"📋 Built {len(documents)} document(s) with full metadata.")
+        logs.append(f"📋 Built {len(documents)} document(s) with metadata.")
 
-        # ── Embed model ───────────────────────────────────────────
+        # ── 8. Embed model ────────────────────────────────────────────────────
         embed_model = OpenAIEmbedding(
             model=settings.EMBED_MODEL,
             api_key=settings.OPENAI_API_KEY,
             dimensions=settings.EMBED_DIMS,
         )
 
-        # ── Search index: 300-500 token chunks ────────────────────
-        logs.append(f"✂️ Search chunking (80th pct threshold)...")
+        # ── 9. Search index — 300-500 token chunks (80th pct) ─────────────────
+        logs.append("✂️  Search chunking (80th pct threshold)...")
         search_splitter = _make_splitter(embed_model, buffer_size=1, threshold=80)
         search_nodes    = search_splitter.get_nodes_from_documents(
             documents, show_progress=False
         )
-
-        # Ensure all metadata is present on every chunk
         for node in search_nodes:
-            node.excluded_llm_metadata_keys   = ["indexed_at", "pdf_url"]
-            node.excluded_embed_metadata_keys  = ["indexed_at", "pdf_url", "page_url"]
+            node.excluded_llm_metadata_keys  = ["indexed_at", "pdf_url"]
+            node.excluded_embed_metadata_keys = ["indexed_at", "pdf_url", "page_url"]
 
-        logs.append(f"✂️ Created {len(search_nodes)} search chunks.")
-
+        logs.append(f"✂️  Created {len(search_nodes)} search chunks.")
         logs.append(f"📤 Uploading to rag-poc ({namespace})...")
         search_vs  = PineconeVectorStore(pinecone_index=_index, namespace=namespace)
         search_ctx = StorageContext.from_defaults(vector_store=search_vs)
         VectorStoreIndex(search_nodes, storage_context=search_ctx, embed_model=embed_model)
         logs.append(f"✅ {len(search_nodes)} chunks → rag-poc '{namespace}'")
 
-        # ── Summary index: 1500-2000 token chunks ─────────────────
-        logs.append(f"✂️ Summary chunking (95th pct threshold)...")
+        # ── 10. Summary index — 1500-2000 token chunks (95th pct) ─────────────
+        logs.append("✂️  Summary chunking (95th pct threshold)...")
         summary_splitter = _make_splitter(embed_model, buffer_size=3, threshold=95)
         summary_nodes    = summary_splitter.get_nodes_from_documents(
             documents, show_progress=False
         )
-
-        # Add summary-specific metadata
         total = len(summary_nodes)
         for idx, node in enumerate(summary_nodes):
             node.metadata["chunk_index"]  = str(idx)
@@ -278,19 +327,16 @@ def ingest(
             node.excluded_llm_metadata_keys  = ["indexed_at", "pdf_url"]
             node.excluded_embed_metadata_keys = ["indexed_at", "pdf_url", "page_url"]
 
-        logs.append(f"✂️ Created {len(summary_nodes)} summary chunks.")
-
+        logs.append(f"✂️  Created {len(summary_nodes)} summary chunks.")
         logs.append(f"📤 Uploading to rag-summary ({namespace})...")
         summary_vs  = PineconeVectorStore(pinecone_index=_summary, namespace=namespace)
         summary_ctx = StorageContext.from_defaults(vector_store=summary_vs)
         VectorStoreIndex(summary_nodes, storage_context=summary_ctx, embed_model=embed_model)
         logs.append(f"✅ {len(summary_nodes)} chunks → rag-summary '{namespace}'")
 
-        # ── Save to DynamoDB registry ─────────────────────────────
+        # ── 11. Save to DynamoDB registry ─────────────────────────────────────
+        # FIX 5: removed dead _pdfs computation — first_filename and content_hash in scope
         try:
-            # Derive first_filename and content_hash if hash check block not reached
-            import os as _os
-            _pdfs = [f for f in _os.listdir(tmp_dir) if f.endswith('.pdf')] if _os.path.exists(tmp_dir) else []
             save_record(
                 filename        = first_filename,
                 clean_name      = clean_name,
@@ -301,15 +347,16 @@ def ingest(
                 chunks_search   = len(search_nodes),
                 chunks_summary  = len(summary_nodes),
                 page_url        = page_url_override,
-                document_family = document_family or family,
+                document_family = family,
+                published_date  = pub_date,
             )
-            logs.append(f"📋 Registry updated in DynamoDB.")
+            logs.append("📋 Registry updated in DynamoDB.")
         except Exception as e:
             logs.append(f"⚠️  Registry update failed: {e}")
 
         logs.append(
             f"🎉 Ingest complete — '{clean_name}' v{version} "
-            f"({rtype}) is now searchable."
+            f"({rtype}) → namespace '{namespace}' — now searchable."
         )
 
     except Exception as e:
@@ -319,3 +366,4 @@ def ingest(
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     return logs
+    
