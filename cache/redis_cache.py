@@ -44,7 +44,11 @@ class RedisCache(BaseCache):
         self._client.delete(key)
 
     def clear(self) -> None:
-        self._client.flushdb()
+        # ElastiCache does not support flushdb/flushall
+        # Delete all rag:* keys individually instead
+        keys = self._client.keys("rag:*")
+        if keys:
+            self._client.delete(*keys)
 
     def exists(self, key: str) -> bool:
         return bool(self._client.exists(key))

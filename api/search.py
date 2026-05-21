@@ -61,17 +61,68 @@ async def _run_pipeline(query: str, namespace: str = None, source: str = "unknow
     from pipeline.embedder import embed_text
     from pipeline.retriever import retrieve_chunks
     from pipeline.reranker import rerank_chunks, build_context
+    import pipeline.semantic_cache as semantic_cache
+
+    # Step 1: language detection + translate to English for retrieval
     retrieval_query, detected_lang = prepare_query(query)
+
+    # Step 2: embed (needed for both semantic cache and Pinecone ANN)
     embedding = embed_text(retrieval_query)
-    chunks    = retrieve_chunks(embedding, namespace=namespace)
-    reranked  = rerank_chunks(retrieval_query, chunks)
-    context   = build_context(reranked)
-    result    = generate_answer(query, context, detected_lang=detected_lang)
+
+    # Step 3: semantic cache check (Layer 2) — before expensive retrieval
+    cached = semantic_cache.get(embedding, lang=detected_lang)
+    if cached:
+        cached["detected_lang"] = detected_lang
+        cached["source"]        = source
+        cached["namespace"]     = namespace or "all"
+        cached["chunk_count"]   = 0
+        cached["top_score"]     = cached.get("similarity", 0.0)
+        return {"result": cached, "reranked": [], "detected_lang": detected_lang}
+
+    # Step 4: full pipeline (cache miss)
+    chunks   = retrieve_chunks(embedding, namespace=namespace)
+    reranked = rerank_chunks(retrieval_query, chunks)
+    context  = build_context(reranked)
+    result   = generate_answer(query, context, detected_lang=detected_lang)
     result["detected_lang"] = detected_lang
     result["source"]        = source
     result["namespace"]     = namespace or "all"
     result["chunk_count"]   = len(reranked)
     result["top_score"]     = round(reranked[0].get("rerank_score", 0), 4) if reranked else 0
+
+    # Step 5: populate semantic cache — only for clean successful answers
+    # Never cache: blocked responses, errors, "no results" answers, PII hits
+    answer_text = result.get("answer", "")
+    is_clean = (
+        answer_text
+        and "Error" not in answer_text
+        and "no relevant" not in answer_text.lower()
+        and "couldn't find" not in answer_text.lower()
+        and not result.get("blocked", False)
+        and len(reranked) > 0  # must have retrieved real chunks
+    )
+    if is_clean:
+        # Store serialised sources so cache hits can return source cards
+        result["sources"] = [
+            {
+                "filename":      c.get("filename", ""),
+                "clean_name":    c.get("clean_name", ""),
+                "page":          c.get("page", ""),
+                "page_url":      c.get("page_url", ""),
+                "pdf_url":       c.get("pdf_url", ""),
+                "resource_type": c.get("resource_type", ""),
+                "preview":       c.get("text", "")[:200].strip(),
+                "relevance_score": round(c.get("rerank_score", 0.0), 4),
+            }
+            for c in reranked
+        ]
+        semantic_cache.set(
+            query=retrieval_query,
+            query_embedding=embedding,
+            result=result,
+            lang=detected_lang,
+        )
+
     return {"result": result, "reranked": reranked, "detected_lang": detected_lang}
 
 @router.post("/search", response_model=SearchResponse)
@@ -118,17 +169,37 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
     reranked      = pipeline_out["reranked"]
     detected_lang = pipeline_out["detected_lang"]
 
+    # Cache hit — return directly without re-running pipeline
+    if result.get("cache_hit") or result.get("semantic_hit"):
+        cached_sources = [
+            Source(
+                filename=s.get("filename", ""),
+                clean_name=s.get("clean_name", ""),
+                page=s.get("page", ""),
+                pdf_url=s.get("pdf_url", ""),
+                page_url=s.get("page_url", ""),
+                resource_type=s.get("resource_type", ""),
+                preview=s.get("preview", ""),
+                relevance_score=s.get("relevance_score", 0.0),
+            )
+            for s in result.get("sources", [])
+        ]
+        return SearchResponse(
+            query=req.query,
+            answer=result.get("answer", ""),
+            sources=cached_sources,
+            followups=result.get("followups", []),
+            cached=True,
+        )
+
     if not reranked:
         return SearchResponse(
             query=req.query,
             answer="No relevant documents found in the index.",
             sources=[], followups=[], blocked=False,
         )
-    from pipeline.reranker import build_context
-    context = build_context(reranked)
-    # Pass original query so GPT-4o responds in user's language
-    result   = generate_answer(req.query, context, detected_lang=detected_lang)
-    answer   = result["answer"]
+    context = build_context(reranked) if reranked else ""
+    answer  = result["answer"]
 
     # 4. Output guardrails
     passed, message = output_guard.run(answer, context, reranked)
