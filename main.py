@@ -13,6 +13,7 @@ from slowapi.errors import RateLimitExceeded
 from config import settings
 from api.search import router as search_router
 from api.ingest import router as ingest_router
+from api.feedback import router as feedback_router
 
 # ── Logging ───────────────────────────────────────────────────────
 logging.basicConfig(
@@ -45,7 +46,8 @@ import os
 if os.path.exists("static"):
     app.mount("/dashboard", StaticFiles(directory="static", html=True), name="static")
 app.include_router(search_router)
-app.include_router(ingest_router, prefix="/api/v1")
+app.include_router(ingest_router,  prefix="/api/v1")
+app.include_router(feedback_router, prefix="/api/v1")
 
 
 @app.on_event("startup")

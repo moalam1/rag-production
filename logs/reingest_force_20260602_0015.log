@@ -1,0 +1,158 @@
+nohup: ignoring input
+[nltk_data] Downloading package punkt_tab to /home/ssm-
+[nltk_data]     user/.local/lib/python3.9/site-
+[nltk_data]     packages/llama_index/core/_static/nltk_cache...
+[nltk_data]   Package punkt_tab is already up-to-date!
+/home/ssm-user/.local/lib/python3.9/site-packages/boto3/compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+2026-06-02 00:15:36,568 [INFO] botocore.credentials — Found credentials from IAM Role: rag-api-ssm-role
+2026-06-02 00:15:36,619 [INFO] ingest_worker — Worker started — queue: https://sqs.us-east-1.amazonaws.com/141927126501/rag-ingest
+2026-06-02 00:15:36,619 [INFO] ingest_worker — Settings: visibility=300s poll=20s delay=2s
+2026-06-02 00:15:36,666 [INFO] ingest_worker — Queue depth — pending=2496 in_flight=31 dlq=0 | Session: processed=0 failed=0 skipped=0
+2026-06-02 00:15:36,671 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:15:41,685 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:15:46,696 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:15:51,708 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:15:56,718 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:01,740 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:06,750 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:11,762 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:16,772 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:21,780 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:26,792 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:31,804 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:36,821 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:41,834 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:46,841 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:51,851 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:16:56,863 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:01,877 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:06,977 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:11,991 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:17,001 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:22,011 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:27,021 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:32,030 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:37,040 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:42,051 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:47,064 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:52,070 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:57,081 [ERROR] ingest_worker — Worker loop error: process_url() got an unexpected keyword argument 'force'
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 137, in main
+    success = process_url(url, force=force)
+TypeError: process_url() got an unexpected keyword argument 'force'
+2026-06-02 00:17:58,536 [INFO] ingest_worker — Shutdown signal — finishing current job then stopping
+2026-06-02 00:18:02,085 [INFO] ingest_worker — Worker stopped — processed=0 failed=0 skipped=0

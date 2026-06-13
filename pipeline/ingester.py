@@ -20,6 +20,7 @@ Fixes applied:
   6. published_date accepted as parameter; falls back to today only if not provided
   7. atomic_version_transition() used instead of two sequential DynamoDB writes
 """
+import asyncio
 import os
 import re
 import shutil
@@ -36,6 +37,7 @@ from llama_index.vector_stores.pinecone import PineconeVectorStore
 from pinecone import Pinecone
 
 from config import settings
+from pipeline.enricher import enrich_chunks_batch, merge_enrichment_into_metadata
 from pipeline.registry import (
     compute_hash,
     is_unchanged,
@@ -138,6 +140,8 @@ def ingest(
     page_url_override:   str = "",
     document_family:     str = "",
     published_date:      str = "",   # FIX 6: accept real publish date, not just today
+    aem_tags:            list = None,  # enrichment tags from AEM page
+    force:               bool = False, # bypass hash check for re-enrichment
 ) -> list[str]:
     """
     Full ingestion pipeline for PDF documents.
@@ -181,7 +185,7 @@ def ingest(
         family = _derive_family(document_family, clean_name, first_filename)
 
         # ── 3. Skip if unchanged ──────────────────────────────────────────────
-        if is_unchanged(first_filename, content_hash):
+        if not force and is_unchanged(first_filename, content_hash):
             logs.append("⏭️  Document unchanged — skipping re-index (same hash).")
             shutil.rmtree(tmp_dir, ignore_errors=True)
             return logs
@@ -307,7 +311,26 @@ def ingest(
             node.excluded_llm_metadata_keys  = ["indexed_at", "pdf_url"]
             node.excluded_embed_metadata_keys = ["indexed_at", "pdf_url", "page_url"]
 
+        # Filter noise chunks — title fragments, copyright notices, footers
+        MIN_CHUNK_WORDS = 50
+        before = len(search_nodes)
+        search_nodes = [n for n in search_nodes if len((n.text or n.get_content()).split()) >= MIN_CHUNK_WORDS]
+        if before - len(search_nodes):
+            logs.append(f"🧹 Dropped {before - len(search_nodes)} noise chunks (<{MIN_CHUNK_WORDS} words)")
+
         logs.append(f"✂️  Created {len(search_nodes)} search chunks.")
+
+        # ── NEW: enrich search nodes ──────────────────────────────────────────
+        search_nodes = _enrich_nodes_sync(
+            nodes         = search_nodes,
+            title         = clean_name_override or "",
+            resource_type = rtype,
+            url           = page_url_override or "",
+            aem_tags      = aem_tags or [],
+        )
+        logs.append(f"🏷️  Enriched {sum(1 for n in search_nodes if n.metadata.get('enriched'))} search chunks.")
+        # ─────────────────────────────────────────────────────────────────────
+
         logs.append(f"📤 Uploading to rag-poc ({namespace})...")
         search_vs  = PineconeVectorStore(pinecone_index=_index, namespace=namespace)
         search_ctx = StorageContext.from_defaults(vector_store=search_vs)
@@ -327,7 +350,26 @@ def ingest(
             node.excluded_llm_metadata_keys  = ["indexed_at", "pdf_url"]
             node.excluded_embed_metadata_keys = ["indexed_at", "pdf_url", "page_url"]
 
+        # Filter noise chunks from summary index
+        MIN_SUMMARY_WORDS = 50
+        before_sum = len(summary_nodes)
+        summary_nodes = [n for n in summary_nodes if len((n.text or n.get_content()).split()) >= MIN_SUMMARY_WORDS]
+        if before_sum - len(summary_nodes):
+            logs.append(f"🧹 Dropped {before_sum - len(summary_nodes)} noise summary chunks (<{MIN_SUMMARY_WORDS} words)")
+
         logs.append(f"✂️  Created {len(summary_nodes)} summary chunks.")
+
+        # ── NEW: enrich summary nodes ─────────────────────────────────────────
+        summary_nodes = _enrich_nodes_sync(
+            nodes         = summary_nodes,
+            title         = clean_name_override or "",
+            resource_type = rtype,
+            url           = page_url_override or "",
+            aem_tags      = aem_tags or [],
+        )
+        logs.append(f"🏷️  Enriched {sum(1 for n in summary_nodes if n.metadata.get('enriched'))} summary chunks.")
+        # ─────────────────────────────────────────────────────────────────────
+
         logs.append(f"📤 Uploading to rag-summary ({namespace})...")
         summary_vs  = PineconeVectorStore(pinecone_index=_summary, namespace=namespace)
         summary_ctx = StorageContext.from_defaults(vector_store=summary_vs)
@@ -366,4 +408,83 @@ def ingest(
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     return logs
-    
+
+# ── Enrichment helper (sync wrapper for async enricher) ───────────────────────
+
+def _enrich_nodes_sync(
+    nodes:         list,
+    title:         str,
+    resource_type: str,
+    url:           str,
+    aem_tags:      list,
+) -> list:
+    """
+    Sync wrapper around enrich_chunks_batch for use in ingester.py.
+    Handles event loop safely — ingester is called synchronously.
+    Never raises — enrichment failure logs and returns nodes unchanged.
+    """
+    if not nodes:
+        return nodes
+
+    try:
+        chunks = [
+            {"text": node.text or node.get_content(), "idx": i}
+            for i, node in enumerate(nodes)
+        ]
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                future = asyncio.run_coroutine_threadsafe(
+                    enrich_chunks_batch(
+                        chunks        = chunks,
+                        title         = title,
+                        resource_type = resource_type,
+                        url           = url,
+                        aem_tags      = aem_tags,
+                    ),
+                    loop
+                )
+                enriched_chunks = future.result(timeout=120)
+            else:
+                enriched_chunks = loop.run_until_complete(
+                    enrich_chunks_batch(
+                        chunks        = chunks,
+                        title         = title,
+                        resource_type = resource_type,
+                        url           = url,
+                        aem_tags      = aem_tags,
+                    )
+                )
+        except RuntimeError:
+            enriched_chunks = asyncio.run(
+                enrich_chunks_batch(
+                    chunks        = chunks,
+                    title         = title,
+                    resource_type = resource_type,
+                    url           = url,
+                    aem_tags      = aem_tags,
+                )
+            )
+
+        for node, enriched in zip(nodes, enriched_chunks):
+            merged = merge_enrichment_into_metadata(
+                node.metadata,
+                enriched.get("enrichment", {}),
+            )
+            node.metadata = merged
+
+        enriched_count = sum(
+            1 for c in enriched_chunks
+            if c.get("enrichment", {}).get("enriched")
+        )
+        log.info(
+            f"PDF enrichment: {enriched_count}/{len(nodes)} nodes enriched "
+            f"({resource_type})"
+        )
+
+    except Exception as e:
+        log.warning(f"PDF enrichment failed — ingesting without tags: {e}")
+
+    return nodes

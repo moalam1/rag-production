@@ -1,0 +1,460 @@
+nohup: ignoring input
+[nltk_data] Downloading package punkt_tab to /home/ssm-
+[nltk_data]     user/.local/lib/python3.9/site-
+[nltk_data]     packages/llama_index/core/_static/nltk_cache...
+[nltk_data]   Package punkt_tab is already up-to-date!
+/home/ssm-user/.local/lib/python3.9/site-packages/boto3/compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+2026-06-02 00:10:17,196 [INFO] botocore.credentials — Found credentials from IAM Role: rag-api-ssm-role
+2026-06-02 00:10:17,248 [INFO] ingest_worker — Worker started — queue: https://sqs.us-east-1.amazonaws.com/141927126501/rag-ingest
+2026-06-02 00:10:17,249 [INFO] ingest_worker — Settings: visibility=300s poll=20s delay=2s
+2026-06-02 00:10:17,351 [INFO] ingest_worker — Queue depth — pending=1282 in_flight=0 dlq=0 | Session: processed=0 failed=0 skipped=0
+2026-06-02 00:10:17,358 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape
+2026-06-02 00:10:17,358 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape
+2026-06-02 00:10:17,395 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape "HTTP/1.1 200 OK"
+2026-06-02 00:10:17,639 [INFO] pipeline.page_parser — ✅ Parsed 'IDC MarketScape – Worldwide Datacenter Colocation ' | type=analyst-report | teaser=561 words | pdf=yes | transcript=no
+2026-06-02 00:10:17,639 [INFO] ingest_worker — Ingesting: type=analyst-report family=interconnection_colocation_equinix_idc_marketscape
+2026-06-02 00:10:19,422 [INFO] pipeline.registry — Deprecated: interconnection_colocation_equinix_idc_marketscape
+2026-06-02 00:10:20,020 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-06-02 00:10:21,711 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:10:21,772 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:10:21,799 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:10:21,959 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:10:21,962 [INFO] pipeline.enricher — Batch enrichment — fully enriched: 4/4  structural only: 0/4  failed: 0/4
+2026-06-02 00:10:21,963 [INFO] pipeline.ingest_router — Enrichment: 4/4 nodes enriched for 'IDC MarketScape – Worldwide Datacenter C' (analyst-report)
+2026-06-02 00:10:22,335 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+Upserted vectors:   0%|          | 0/4 [00:00<?, ?it/s]Upserted vectors: 100%|██████████| 4/4 [00:00<00:00, 22.73it/s]Upserted vectors: 100%|██████████| 4/4 [00:00<00:00, 22.70it/s]
+2026-06-02 00:10:22,792 [INFO] httpx — HTTP Request: GET https://www.equinix.com/content/dam/eqxcorp/en_us/documents/resources/analyst-reports/ar_IDC_marketscape_worldwide_datacenter_vendor_assessment_en.pdf "HTTP/1.1 200 OK"
+2026-06-02 00:10:22,807 [INFO] pinecone_plugin_interface.logging — Discovering subpackages in _NamespacePath(['/home/ssm-user/.local/lib/python3.9/site-packages/pinecone_plugins'])
+2026-06-02 00:10:22,807 [INFO] pinecone_plugin_interface.logging — Looking for plugins in pinecone_plugins.assistant
+2026-06-02 00:10:22,807 [INFO] pinecone_plugin_interface.logging — Looking for plugins in pinecone_plugins.inference
+2026-06-02 00:10:22,807 [INFO] pinecone_plugin_interface.logging — Installing plugin assistant into Pinecone
+2026-06-02 00:10:22,808 [INFO] pinecone_plugin_interface.logging — Installing plugin inference into Pinecone
+/home/ssm-user/.local/lib/python3.9/site-packages/boto3/compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+2026-06-02 00:10:22,896 [INFO] pipeline.registry — Registry saved: interconnection_colocation_equinix_idc_marketscape v4 (4 search, 0 summary chunks)
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape
+2026-06-02 00:10:22,896 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=interconnection_colocation_equinix_idc_marketscape
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   🔄 v3 → v4 — deprecating old chunks...
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   ⚠️  Delete failed in media: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Date': 'Tue, 02 Jun 2026 00:10:19 GMT', 'Content-Type': 'application/json', 'Content-Length': '55', 'Connection': 'keep-alive', 'x-pinecone-request-latency-ms': '1', 'x-envoy-upstream-service-time': '2', 'x-pinecone-response-duration-ms': '3', 'server': 'envoy'})
+HTTP response body: {"code":5,"message":"Namespace not found","details":[]}
+
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   ✅ Old chunks removed.
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   📄 Ingesting page teaser (561 words)...
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   ✅ Teaser: 4 search + 0 summary chunks → 'technical'
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   📥 Fetching PDF: https://www.equinix.com/content/dam/eqxcorp/en_us/documents/...
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   ✅ PDF fetched: 235,454 bytes
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   🔑 Content hash: 7a107509...
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   ⏭️  Document unchanged — skipping re-index (same hash).
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   📋 Registry updated in DynamoDB.
+2026-06-02 00:10:22,896 [INFO] ingest_worker —   🎉 Done — 'IDC MarketScape – Worldwide Datacenter Colocation ' v4 searchable.
+2026-06-02 00:10:22,896 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape
+2026-06-02 00:10:24,912 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/idc-gulf-countries-colocation-services-vendor-assessment
+2026-06-02 00:10:24,912 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/idc-gulf-countries-colocation-services-vendor-assessment
+2026-06-02 00:10:25,007 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/idc-gulf-countries-colocation-services-vendor-assessment "HTTP/1.1 200 OK"
+2026-06-02 00:10:25,152 [INFO] pipeline.page_parser — ✅ Parsed 'IDC MarketScape: Gulf Countries Colocation' | type=analyst-report | teaser=582 words | pdf=yes | transcript=no
+2026-06-02 00:10:25,153 [INFO] ingest_worker — Ingesting: type=analyst-report family=idc_gulf_countries_colocation_services_vendor_asse
+2026-06-02 00:10:25,270 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/idc-gulf-countries-colocation-services-vendor-assessment
+2026-06-02 00:10:25,270 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=idc_gulf_countries_colocation_services_vendor_asse
+2026-06-02 00:10:25,270 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:25,270 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/idc-gulf-countries-colocation-services-vendor-assessment
+2026-06-02 00:10:27,283 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/esg-equinix-fabric-vs-public-internet
+2026-06-02 00:10:27,283 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/esg-equinix-fabric-vs-public-internet
+2026-06-02 00:10:27,347 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/esg-equinix-fabric-vs-public-internet "HTTP/1.1 200 OK"
+2026-06-02 00:10:27,422 [INFO] pipeline.page_parser — ✅ Parsed 'Measuring Performance with Equinix Fabric versus P' | type=analyst-report | teaser=119 words | pdf=yes | transcript=no
+2026-06-02 00:10:27,422 [INFO] ingest_worker — Ingesting: type=analyst-report family=esg_equinix_fabric_vs_public_internet
+2026-06-02 00:10:27,538 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/esg-equinix-fabric-vs-public-internet
+2026-06-02 00:10:27,539 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=esg_equinix_fabric_vs_public_internet
+2026-06-02 00:10:27,539 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:27,539 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/esg-equinix-fabric-vs-public-internet
+2026-06-02 00:10:29,553 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/esg-ai-optimized-data-centers
+2026-06-02 00:10:29,553 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/esg-ai-optimized-data-centers
+2026-06-02 00:10:29,654 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/esg-ai-optimized-data-centers "HTTP/1.1 200 OK"
+2026-06-02 00:10:29,930 [INFO] pipeline.page_parser — ✅ Parsed 'ESG – AI-Optimized Data Centers' | type=analyst-report | teaser=391 words | pdf=yes | transcript=no
+2026-06-02 00:10:29,930 [INFO] ingest_worker — Ingesting: type=analyst-report family=esg_ai_optimized_data_centers
+2026-06-02 00:10:30,075 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/esg-ai-optimized-data-centers
+2026-06-02 00:10:30,075 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=esg_ai_optimized_data_centers
+2026-06-02 00:10:30,075 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:30,075 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/esg-ai-optimized-data-centers
+2026-06-02 00:10:32,091 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/2025-japan-frost-and-sullivan-data-center-award
+2026-06-02 00:10:32,092 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/2025-japan-frost-and-sullivan-data-center-award
+2026-06-02 00:10:32,146 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/2025-japan-frost-and-sullivan-data-center-award "HTTP/1.1 200 OK"
+2026-06-02 00:10:32,222 [INFO] pipeline.page_parser — ✅ Parsed '2025 Japan Data Center Services Company of the Yea' | type=analyst-report | teaser=97 words | pdf=yes | transcript=no
+2026-06-02 00:10:32,223 [INFO] ingest_worker — Ingesting: type=analyst-report family=2025_japan_frost_and_sullivan_data_center_award
+2026-06-02 00:10:32,354 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/2025-japan-frost-and-sullivan-data-center-award
+2026-06-02 00:10:32,355 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=2025_japan_frost_and_sullivan_data_center_award
+2026-06-02 00:10:32,355 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:32,355 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/2025-japan-frost-and-sullivan-data-center-award
+2026-06-02 00:10:34,369 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability
+2026-06-02 00:10:34,369 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability
+2026-06-02 00:10:34,421 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability "HTTP/1.1 200 OK"
+2026-06-02 00:10:34,556 [INFO] pipeline.page_parser — ✅ Parsed 'S&P Global - Colocation for Sustainability' | type=analyst-report | teaser=441 words | pdf=yes | transcript=no
+2026-06-02 00:10:34,556 [INFO] ingest_worker — Ingesting: type=analyst-report family=sp_global_colocation_sustainability
+2026-06-02 00:10:34,689 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability
+2026-06-02 00:10:34,689 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=sp_global_colocation_sustainability
+2026-06-02 00:10:34,689 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:34,689 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability
+2026-06-02 00:10:36,701 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/idc-ai-agents-edge-interferencing
+2026-06-02 00:10:36,701 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/idc-ai-agents-edge-interferencing
+2026-06-02 00:10:36,766 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/idc-ai-agents-edge-interferencing "HTTP/1.1 200 OK"
+2026-06-02 00:10:36,902 [INFO] pipeline.page_parser — ✅ Parsed 'IDC - Growth in AI agents driving edge inferencing' | type=analyst-report | teaser=501 words | pdf=yes | transcript=no
+2026-06-02 00:10:36,902 [INFO] ingest_worker — Ingesting: type=analyst-report family=idc_ai_agents_edge_interferencing
+2026-06-02 00:10:37,016 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/idc-ai-agents-edge-interferencing
+2026-06-02 00:10:37,017 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=idc_ai_agents_edge_interferencing
+2026-06-02 00:10:37,017 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:37,017 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/idc-ai-agents-edge-interferencing
+2026-06-02 00:10:39,069 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/esg-solve-hybrid-multicloud-networking
+2026-06-02 00:10:39,069 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/esg-solve-hybrid-multicloud-networking
+2026-06-02 00:10:39,123 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/esg-solve-hybrid-multicloud-networking "HTTP/1.1 200 OK"
+2026-06-02 00:10:39,260 [INFO] pipeline.page_parser — ✅ Parsed 'ESG – Optimize Hybrid Multicloud Networking' | type=analyst-report | teaser=443 words | pdf=yes | transcript=no
+2026-06-02 00:10:39,260 [INFO] ingest_worker — Ingesting: type=analyst-report family=esg_solve_hybrid_multicloud_networking
+2026-06-02 00:10:39,378 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/esg-solve-hybrid-multicloud-networking
+2026-06-02 00:10:39,378 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=esg_solve_hybrid_multicloud_networking
+2026-06-02 00:10:39,378 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:39,378 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/esg-solve-hybrid-multicloud-networking
+2026-06-02 00:10:41,390 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/idc-distributed-ai-future-of-infrastructure
+2026-06-02 00:10:41,390 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/idc-distributed-ai-future-of-infrastructure
+2026-06-02 00:10:41,416 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/idc-distributed-ai-future-of-infrastructure "HTTP/1.1 200 OK"
+2026-06-02 00:10:41,491 [INFO] pipeline.page_parser — ✅ Parsed 'IDC Spotlight – The Emergence of Distributed AI' | type=analyst-report | teaser=91 words | pdf=yes | transcript=no
+2026-06-02 00:10:41,491 [INFO] ingest_worker — Ingesting: type=analyst-report family=idc_distributed_ai_future_of_infrastructure
+2026-06-02 00:10:41,607 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/idc-distributed-ai-future-of-infrastructure
+2026-06-02 00:10:41,607 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=idc_distributed_ai_future_of_infrastructure
+2026-06-02 00:10:41,607 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:41,607 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/idc-distributed-ai-future-of-infrastructure
+2026-06-02 00:10:43,621 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/interconnected-cloud-strategy-for-resiliency-asia-pacific
+2026-06-02 00:10:43,621 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/interconnected-cloud-strategy-for-resiliency-asia-pacific
+2026-06-02 00:10:43,871 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/interconnected-cloud-strategy-for-resiliency-asia-pacific "HTTP/1.1 200 OK"
+2026-06-02 00:10:44,007 [INFO] pipeline.page_parser — ✅ Parsed 'Interconnected Cloud Strategy for Digital Enterpri' | type=analyst-report | teaser=443 words | pdf=yes | transcript=no
+2026-06-02 00:10:44,007 [INFO] ingest_worker — Ingesting: type=analyst-report family=interconnected_cloud_strategy_for_resiliency_asia_
+2026-06-02 00:10:44,117 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/interconnected-cloud-strategy-for-resiliency-asia-pacific
+2026-06-02 00:10:44,117 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=interconnected_cloud_strategy_for_resiliency_asia_
+2026-06-02 00:10:44,117 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:44,117 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/interconnected-cloud-strategy-for-resiliency-asia-pacific
+2026-06-02 00:10:46,130 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/esg-refitting-hybrid-multicloud-networks-ai-native-era
+2026-06-02 00:10:46,130 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/esg-refitting-hybrid-multicloud-networks-ai-native-era
+2026-06-02 00:10:46,189 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/esg-refitting-hybrid-multicloud-networks-ai-native-era "HTTP/1.1 200 OK"
+2026-06-02 00:10:46,326 [INFO] pipeline.page_parser — ✅ Parsed 'ESG Showcase: Hybrid Multicloud Networks for AI' | type=analyst-report | teaser=478 words | pdf=yes | transcript=no
+2026-06-02 00:10:46,326 [INFO] ingest_worker — Ingesting: type=analyst-report family=esg_refitting_hybrid_multicloud_networks_ai_native
+2026-06-02 00:10:47,617 [INFO] pipeline.registry — Deprecated: esg_refitting_hybrid_multicloud_networks_ai_native
+2026-06-02 00:10:47,985 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-06-02 00:10:49,506 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:10:49,666 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:10:49,900 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:10:50,118 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:10:50,123 [INFO] pipeline.enricher — Batch enrichment — fully enriched: 4/4  structural only: 0/4  failed: 0/4
+2026-06-02 00:10:50,124 [INFO] pipeline.ingest_router — Enrichment: 4/4 nodes enriched for 'ESG Showcase: Hybrid Multicloud Networks' (analyst-report)
+2026-06-02 00:10:50,552 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+Upserted vectors:   0%|          | 0/4 [00:00<?, ?it/s]Upserted vectors: 100%|██████████| 4/4 [00:00<00:00, 20.25it/s]Upserted vectors: 100%|██████████| 4/4 [00:00<00:00, 20.23it/s]
+2026-06-02 00:10:50,936 [INFO] httpx — HTTP Request: GET https://www.equinix.com/content/dam/eqxcorp/en_us/documents/resources/analyst-reports/ar_esg_showcase_hybrid_multicloud_networks_for_ai_en.pdf "HTTP/1.1 200 OK"
+2026-06-02 00:10:51,036 [INFO] pipeline.registry — Registry saved: esg_refitting_hybrid_multicloud_networks_ai_native v2 (4 search, 0 summary chunks)
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/esg-refitting-hybrid-multicloud-networks-ai-native-era
+2026-06-02 00:10:51,037 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=esg_refitting_hybrid_multicloud_networks_ai_native
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   🔄 v1 → v2 — deprecating old chunks...
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   ⚠️  Delete failed in media: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Date': 'Tue, 02 Jun 2026 00:10:47 GMT', 'Content-Type': 'application/json', 'Content-Length': '55', 'Connection': 'keep-alive', 'x-pinecone-request-latency-ms': '1', 'x-envoy-upstream-service-time': '2', 'x-pinecone-response-duration-ms': '3', 'server': 'envoy'})
+HTTP response body: {"code":5,"message":"Namespace not found","details":[]}
+
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   ✅ Old chunks removed.
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   📄 Ingesting page teaser (478 words)...
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   ✅ Teaser: 4 search + 0 summary chunks → 'technical'
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   📥 Fetching PDF: https://www.equinix.com/content/dam/eqxcorp/en_us/documents/...
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   ✅ PDF fetched: 408,789 bytes
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   🔑 Content hash: 4d12abc6...
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   ⏭️  Document unchanged — skipping re-index (same hash).
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   📋 Registry updated in DynamoDB.
+2026-06-02 00:10:51,037 [INFO] ingest_worker —   🎉 Done — 'ESG Showcase: Hybrid Multicloud Networks for AI' v2 searchable.
+2026-06-02 00:10:51,037 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/esg-refitting-hybrid-multicloud-networks-ai-native-era
+2026-06-02 00:10:53,051 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-fsi
+2026-06-02 00:10:53,051 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-fsi
+2026-06-02 00:10:53,112 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-fsi "HTTP/1.1 200 OK"
+2026-06-02 00:10:53,258 [INFO] pipeline.page_parser — ✅ Parsed 'Data Centers and Sustainability for Financial Serv' | type=analyst-report | teaser=593 words | pdf=yes | transcript=no
+2026-06-02 00:10:53,258 [INFO] ingest_worker — Ingesting: type=analyst-report family=sp_global_colocation_sustainability_fsi
+2026-06-02 00:10:53,384 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-fsi
+2026-06-02 00:10:53,384 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=sp_global_colocation_sustainability_fsi
+2026-06-02 00:10:53,384 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:53,384 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-fsi
+2026-06-02 00:10:55,399 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/private-ai-compliance-strategies
+2026-06-02 00:10:55,399 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/private-ai-compliance-strategies
+2026-06-02 00:10:55,458 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/private-ai-compliance-strategies "HTTP/1.1 200 OK"
+2026-06-02 00:10:55,594 [INFO] pipeline.page_parser — ✅ Parsed 'Private AI and regulatory compliance' | type=analyst-report | teaser=462 words | pdf=yes | transcript=no
+2026-06-02 00:10:55,594 [INFO] ingest_worker — Ingesting: type=analyst-report family=private_ai_compliance_strategies
+2026-06-02 00:10:55,715 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/private-ai-compliance-strategies
+2026-06-02 00:10:55,715 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=private_ai_compliance_strategies
+2026-06-02 00:10:55,715 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:55,715 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/private-ai-compliance-strategies
+2026-06-02 00:10:57,730 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/equinix-datacenter-digital-infrastructure-services
+2026-06-02 00:10:57,730 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/equinix-datacenter-digital-infrastructure-services
+2026-06-02 00:10:57,801 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/equinix-datacenter-digital-infrastructure-services "HTTP/1.1 200 OK"
+2026-06-02 00:10:57,937 [INFO] pipeline.page_parser — ✅ Parsed 'Equinix Growth Driven by AI, Hyperscale, and Digit' | type=analyst-report | teaser=418 words | pdf=yes | transcript=no
+2026-06-02 00:10:57,937 [INFO] ingest_worker — Ingesting: type=analyst-report family=equinix_datacenter_digital_infrastructure_services
+2026-06-02 00:10:58,049 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/equinix-datacenter-digital-infrastructure-services
+2026-06-02 00:10:58,049 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=equinix_datacenter_digital_infrastructure_services
+2026-06-02 00:10:58,049 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:10:58,049 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/equinix-datacenter-digital-infrastructure-services
+2026-06-02 00:11:00,073 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/sp-global-managed-ai-nvidia
+2026-06-02 00:11:00,074 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/sp-global-managed-ai-nvidia
+2026-06-02 00:11:00,181 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/sp-global-managed-ai-nvidia "HTTP/1.1 200 OK"
+2026-06-02 00:11:00,268 [INFO] pipeline.page_parser — ✅ Parsed 'S&P Global – Equinix collaborates with NVIDIA for ' | type=analyst-report | teaser=70 words | pdf=yes | transcript=no
+2026-06-02 00:11:00,269 [INFO] ingest_worker — Ingesting: type=analyst-report family=sp_global_managed_ai_nvidia
+2026-06-02 00:11:00,384 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/sp-global-managed-ai-nvidia
+2026-06-02 00:11:00,385 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=sp_global_managed_ai_nvidia
+2026-06-02 00:11:00,385 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:00,385 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/sp-global-managed-ai-nvidia
+2026-06-02 00:11:02,399 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/idc-marketscape-datacenter-sustainability
+2026-06-02 00:11:02,399 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/idc-marketscape-datacenter-sustainability
+2026-06-02 00:11:02,526 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/idc-marketscape-datacenter-sustainability "HTTP/1.1 200 OK"
+2026-06-02 00:11:02,669 [INFO] pipeline.page_parser — ✅ Parsed 'IDC MarketScape 2025-2026: Datacenter Services Sus' | type=analyst-report | teaser=508 words | pdf=yes | transcript=no
+2026-06-02 00:11:02,669 [INFO] ingest_worker — Ingesting: type=analyst-report family=idc_marketscape_datacenter_sustainability
+2026-06-02 00:11:02,790 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/idc-marketscape-datacenter-sustainability
+2026-06-02 00:11:02,790 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=idc_marketscape_datacenter_sustainability
+2026-06-02 00:11:02,790 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:02,790 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/idc-marketscape-datacenter-sustainability
+2026-06-02 00:11:04,803 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-nsp
+2026-06-02 00:11:04,804 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-nsp
+2026-06-02 00:11:04,931 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-nsp "HTTP/1.1 200 OK"
+2026-06-02 00:11:05,076 [INFO] pipeline.page_parser — ✅ Parsed 'AI-Ready Data Centers Drive Network Sustainability' | type=analyst-report | teaser=595 words | pdf=yes | transcript=no
+2026-06-02 00:11:05,076 [INFO] ingest_worker — Ingesting: type=analyst-report family=sp_global_colocation_sustainability_nsp
+2026-06-02 00:11:05,196 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-nsp
+2026-06-02 00:11:05,197 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=sp_global_colocation_sustainability_nsp
+2026-06-02 00:11:05,197 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:05,197 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/sp-global-colocation-sustainability-nsp
+2026-06-02 00:11:07,212 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/gartner-market-guide-data-center-colocation
+2026-06-02 00:11:07,212 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/gartner-market-guide-data-center-colocation
+2026-06-02 00:11:07,329 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/gartner-market-guide-data-center-colocation "HTTP/1.1 301 Moved Permanently"
+2026-06-02 00:11:07,358 [INFO] httpx — HTTP Request: GET https://www.equinix.com/product-solutions/colocation "HTTP/1.1 200 OK"
+2026-06-02 00:11:07,462 [INFO] pipeline.page_parser — ✅ Parsed 'Scalable Data Center Infrastructure | Global Data ' | type=analyst-report | teaser=443 words | pdf=no | transcript=no
+2026-06-02 00:11:07,462 [INFO] ingest_worker — Ingesting: type=analyst-report family=gartner_market_guide_data_center_colocation
+2026-06-02 00:11:09,551 [INFO] pipeline.registry — Deprecated: gartner_market_guide_data_center_colocation
+2026-06-02 00:11:10,223 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-06-02 00:11:11,564 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:11,805 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:12,029 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:12,043 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:12,742 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:13,233 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:13,313 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:13,315 [INFO] pipeline.enricher — Batch enrichment — fully enriched: 7/7  structural only: 0/7  failed: 0/7
+2026-06-02 00:11:13,316 [INFO] pipeline.ingest_router — Enrichment: 7/7 nodes enriched for 'Scalable Data Center Infrastructure | Gl' (analyst-report)
+2026-06-02 00:11:13,662 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+Upserted vectors:   0%|          | 0/7 [00:00<?, ?it/s]Upserted vectors: 100%|██████████| 7/7 [00:00<00:00, 38.97it/s]Upserted vectors: 100%|██████████| 7/7 [00:00<00:00, 38.91it/s]
+2026-06-02 00:11:14,068 [INFO] pipeline.registry — Registry saved: gartner_market_guide_data_center_colocation v2 (7 search, 0 summary chunks)
+2026-06-02 00:11:14,069 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/gartner-market-guide-data-center-colocation
+2026-06-02 00:11:14,069 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=gartner_market_guide_data_center_colocation
+2026-06-02 00:11:14,069 [INFO] ingest_worker —   🔄 v1 → v2 — deprecating old chunks...
+2026-06-02 00:11:14,069 [INFO] ingest_worker —   ⚠️  Delete failed in media: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Date': 'Tue, 02 Jun 2026 00:11:09 GMT', 'Content-Type': 'application/json', 'Content-Length': '55', 'Connection': 'keep-alive', 'x-pinecone-request-latency-ms': '1', 'x-envoy-upstream-service-time': '2', 'x-pinecone-response-duration-ms': '3', 'server': 'envoy'})
+HTTP response body: {"code":5,"message":"Namespace not found","details":[]}
+
+2026-06-02 00:11:14,069 [INFO] ingest_worker —   ✅ Old chunks removed.
+2026-06-02 00:11:14,069 [INFO] ingest_worker —   📄 Ingesting page teaser (443 words)...
+2026-06-02 00:11:14,069 [INFO] ingest_worker —   ✅ Teaser: 7 search + 0 summary chunks → 'technical'
+2026-06-02 00:11:14,069 [INFO] ingest_worker —   📋 Registry updated in DynamoDB.
+2026-06-02 00:11:14,069 [INFO] ingest_worker —   🎉 Done — 'Scalable Data Center Infrastructure | Global Data ' v2 searchable.
+2026-06-02 00:11:14,069 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/gartner-market-guide-data-center-colocation
+2026-06-02 00:11:16,080 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/edging-toward-a-secure-hybrid-cloud
+2026-06-02 00:11:16,080 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/edging-toward-a-secure-hybrid-cloud
+2026-06-02 00:11:16,119 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/edging-toward-a-secure-hybrid-cloud "HTTP/1.1 200 OK"
+2026-06-02 00:11:16,256 [INFO] pipeline.page_parser — ✅ Parsed 'Secure Hybrid Cloud' | type=analyst-report | teaser=505 words | pdf=yes | transcript=no
+2026-06-02 00:11:16,256 [INFO] ingest_worker — Ingesting: type=analyst-report family=edging_toward_a_secure_hybrid_cloud
+2026-06-02 00:11:16,385 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/edging-toward-a-secure-hybrid-cloud
+2026-06-02 00:11:16,386 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=edging_toward_a_secure_hybrid_cloud
+2026-06-02 00:11:16,386 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:16,386 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/edging-toward-a-secure-hybrid-cloud
+2026-06-02 00:11:18,399 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/sp-global-intelligence-fastly-sustainability
+2026-06-02 00:11:18,399 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/sp-global-intelligence-fastly-sustainability
+2026-06-02 00:11:18,469 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/sp-global-intelligence-fastly-sustainability "HTTP/1.1 200 OK"
+2026-06-02 00:11:18,544 [INFO] pipeline.page_parser — ✅ Parsed 'Fastly Improves Sustainability Measurement with Eq' | type=analyst-report | teaser=178 words | pdf=yes | transcript=no
+2026-06-02 00:11:18,544 [INFO] ingest_worker — Ingesting: type=analyst-report family=sp_global_intelligence_fastly_sustainability
+2026-06-02 00:11:18,665 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/sp-global-intelligence-fastly-sustainability
+2026-06-02 00:11:18,666 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=sp_global_intelligence_fastly_sustainability
+2026-06-02 00:11:18,666 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:18,666 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/sp-global-intelligence-fastly-sustainability
+2026-06-02 00:11:20,679 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/hybrid-multicloud
+2026-06-02 00:11:20,680 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/hybrid-multicloud
+2026-06-02 00:11:20,760 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/hybrid-multicloud "HTTP/1.1 200 OK"
+2026-06-02 00:11:20,836 [INFO] pipeline.page_parser — ✅ Parsed 'Hybrid multicloud infrastructure blueprint' | type=blueprint | teaser=160 words | pdf=yes | transcript=no
+2026-06-02 00:11:20,836 [INFO] ingest_worker — Ingesting: type=blueprint family=hybrid_multicloud
+2026-06-02 00:11:20,948 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/hybrid-multicloud
+2026-06-02 00:11:20,948 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=hybrid_multicloud
+2026-06-02 00:11:20,948 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:20,948 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/hybrid-multicloud
+2026-06-02 00:11:22,961 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/consumer-retail
+2026-06-02 00:11:22,961 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/consumer-retail
+2026-06-02 00:11:23,196 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/consumer-retail "HTTP/1.1 200 OK"
+2026-06-02 00:11:23,272 [INFO] pipeline.page_parser — ✅ Parsed 'IOA - Consumer Retail Blueprint' | type=blueprint | teaser=66 words | pdf=yes | transcript=no
+2026-06-02 00:11:23,272 [INFO] ingest_worker — Ingesting: type=blueprint family=consumer_retail
+2026-06-02 00:11:23,387 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/consumer-retail
+2026-06-02 00:11:23,388 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=consumer_retail
+2026-06-02 00:11:23,388 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:23,388 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/consumer-retail
+2026-06-02 00:11:25,402 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/network-service-provider
+2026-06-02 00:11:25,402 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/network-service-provider
+2026-06-02 00:11:25,508 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/network-service-provider "HTTP/1.1 200 OK"
+2026-06-02 00:11:25,584 [INFO] pipeline.page_parser — ✅ Parsed 'IOA - Network Service Provider Blueprint' | type=blueprint | teaser=72 words | pdf=yes | transcript=no
+2026-06-02 00:11:25,584 [INFO] ingest_worker — Ingesting: type=blueprint family=network_service_provider
+2026-06-02 00:11:25,693 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/network-service-provider
+2026-06-02 00:11:25,694 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=network_service_provider
+2026-06-02 00:11:25,694 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:25,694 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/network-service-provider
+2026-06-02 00:11:27,708 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/idc-marketscape-canada-data-center-colocation-interconnection
+2026-06-02 00:11:27,708 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/idc-marketscape-canada-data-center-colocation-interconnection
+2026-06-02 00:11:27,780 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/idc-marketscape-canada-data-center-colocation-interconnection "HTTP/1.1 200 OK"
+2026-06-02 00:11:27,918 [INFO] pipeline.page_parser — ✅ Parsed 'Canadian Data Center Colocation' | type=analyst-report | teaser=563 words | pdf=yes | transcript=no
+2026-06-02 00:11:27,918 [INFO] ingest_worker — Ingesting: type=analyst-report family=idc_marketscape_canada_data_center_colocation_inte
+2026-06-02 00:11:28,033 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/idc-marketscape-canada-data-center-colocation-interconnection
+2026-06-02 00:11:28,034 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=idc_marketscape_canada_data_center_colocation_inte
+2026-06-02 00:11:28,034 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:28,034 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/idc-marketscape-canada-data-center-colocation-interconnection
+2026-06-02 00:11:30,047 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/content-delivery
+2026-06-02 00:11:30,047 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/content-delivery
+2026-06-02 00:11:30,129 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/content-delivery "HTTP/1.1 200 OK"
+2026-06-02 00:11:30,207 [INFO] pipeline.page_parser — ✅ Parsed 'IOA® - CONTENT DELIVERY BLUEPRINT' | type=blueprint | teaser=86 words | pdf=yes | transcript=no
+2026-06-02 00:11:30,207 [INFO] ingest_worker — Ingesting: type=blueprint family=content_delivery
+2026-06-02 00:11:30,322 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/content-delivery
+2026-06-02 00:11:30,322 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=content_delivery
+2026-06-02 00:11:30,322 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:30,322 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/content-delivery
+2026-06-02 00:11:32,336 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-integrate-edge-data-services
+2026-06-02 00:11:32,336 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-integrate-edge-data-services
+2026-06-02 00:11:32,388 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-integrate-edge-data-services "HTTP/1.1 200 OK"
+2026-06-02 00:11:32,464 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN BLUEPRINT - INTEGRATE DATA SERVICES' | type=blueprint | teaser=81 words | pdf=yes | transcript=no
+2026-06-02 00:11:32,464 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_integrate_edge_data_services
+2026-06-02 00:11:32,581 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/design-pattern-integrate-edge-data-services
+2026-06-02 00:11:32,581 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=design_pattern_integrate_edge_data_services
+2026-06-02 00:11:32,582 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:32,582 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/design-pattern-integrate-edge-data-services
+2026-06-02 00:11:34,595 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-api-management
+2026-06-02 00:11:34,595 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-api-management
+2026-06-02 00:11:34,674 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-api-management "HTTP/1.1 200 OK"
+2026-06-02 00:11:34,752 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – API MANAGEMENT BLUEPRINT' | type=blueprint | teaser=78 words | pdf=yes | transcript=no
+2026-06-02 00:11:34,752 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_api_management
+2026-06-02 00:11:34,870 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/design-pattern-api-management
+2026-06-02 00:11:34,870 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=design_pattern_api_management
+2026-06-02 00:11:34,870 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:34,870 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/design-pattern-api-management
+2026-06-02 00:11:36,884 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-control-digital-communications
+2026-06-02 00:11:36,884 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-control-digital-communications
+2026-06-02 00:11:36,991 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-control-digital-communications "HTTP/1.1 200 OK"
+2026-06-02 00:11:37,067 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – CONTROL DIGITAL COMMUNICATIONS' | type=blueprint | teaser=85 words | pdf=yes | transcript=no
+2026-06-02 00:11:37,067 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_control_digital_communications
+2026-06-02 00:11:37,185 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/design-pattern-control-digital-communications
+2026-06-02 00:11:37,186 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=design_pattern_control_digital_communications
+2026-06-02 00:11:37,186 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:37,186 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/design-pattern-control-digital-communications
+2026-06-02 00:11:39,200 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/network
+2026-06-02 00:11:39,200 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/network
+2026-06-02 00:11:39,270 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/network "HTTP/1.1 200 OK"
+2026-06-02 00:11:39,347 [INFO] pipeline.page_parser — ✅ Parsed 'IOA® - NETWORK BLUEPRINT' | type=blueprint | teaser=77 words | pdf=yes | transcript=no
+2026-06-02 00:11:39,347 [INFO] ingest_worker — Ingesting: type=blueprint family=network
+2026-06-02 00:11:39,466 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/network
+2026-06-02 00:11:39,467 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=network
+2026-06-02 00:11:39,467 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:39,467 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/network
+2026-06-02 00:11:41,481 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/cloud-service-provider
+2026-06-02 00:11:41,481 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/cloud-service-provider
+2026-06-02 00:11:41,529 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/cloud-service-provider "HTTP/1.1 200 OK"
+2026-06-02 00:11:41,606 [INFO] pipeline.page_parser — ✅ Parsed 'IOA - Cloud Service Provider Blueprint' | type=blueprint | teaser=87 words | pdf=yes | transcript=no
+2026-06-02 00:11:41,606 [INFO] ingest_worker — Ingesting: type=blueprint family=cloud_service_provider
+2026-06-02 00:11:41,727 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/cloud-service-provider
+2026-06-02 00:11:41,727 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=cloud_service_provider
+2026-06-02 00:11:41,728 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:41,728 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/cloud-service-provider
+2026-06-02 00:11:43,744 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-fsi
+2026-06-02 00:11:43,744 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-fsi
+2026-06-02 00:11:43,841 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-fsi "HTTP/1.1 200 OK"
+2026-06-02 00:11:44,007 [INFO] pipeline.page_parser — ✅ Parsed 'IDC MarketScape – Worldwide Datacenter Colocation ' | type=analyst-report | teaser=705 words | pdf=yes | transcript=no
+2026-06-02 00:11:44,007 [INFO] ingest_worker — Ingesting: type=analyst-report family=interconnection_colocation_equinix_idc_marketscape
+2026-06-02 00:11:45,871 [INFO] pipeline.registry — Deprecated: interconnection_colocation_equinix_idc_marketscape
+2026-06-02 00:11:46,220 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2026-06-02 00:11:47,291 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:48,294 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:48,402 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:48,616 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:48,663 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:49,409 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-02 00:11:49,416 [INFO] pipeline.enricher — Registry loaded: 11 products, 27 names
+2026-06-02 00:11:49,416 [INFO] pipeline.enricher — Batch enrichment — fully enriched: 6/6  structural only: 0/6  failed: 0/6
+2026-06-02 00:11:49,416 [INFO] pipeline.enricher — Top products in batch: [('Equinix Fabric', 1)]
+2026-06-02 00:11:49,417 [INFO] pipeline.ingest_router — Enrichment: 6/6 nodes enriched for 'IDC MarketScape – Worldwide Datacenter C' (analyst-report)
+2026-06-02 00:11:49,594 [INFO] httpx — HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+Upserted vectors:   0%|          | 0/6 [00:00<?, ?it/s]Upserted vectors: 100%|██████████| 6/6 [00:00<00:00, 34.82it/s]Upserted vectors: 100%|██████████| 6/6 [00:00<00:00, 34.77it/s]
+2026-06-02 00:11:49,828 [INFO] httpx — HTTP Request: GET https://www.equinix.com/content/dam/eqxcorp/en_us/documents/resources/analyst-reports/ar_IDC_marketscape_worldwide_datacenter_vendor_assessment_en.pdf "HTTP/1.1 200 OK"
+2026-06-02 00:11:49,917 [INFO] pipeline.registry — Registry saved: interconnection_colocation_equinix_idc_marketscape v5 (6 search, 0 summary chunks)
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-fsi
+2026-06-02 00:11:49,917 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=interconnection_colocation_equinix_idc_marketscape
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   🔄 v4 → v5 — deprecating old chunks...
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   ⚠️  Delete failed in media: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Date': 'Tue, 02 Jun 2026 00:11:45 GMT', 'Content-Type': 'application/json', 'Content-Length': '55', 'Connection': 'keep-alive', 'x-pinecone-request-latency-ms': '53', 'x-envoy-upstream-service-time': '54', 'x-pinecone-response-duration-ms': '55', 'server': 'envoy'})
+HTTP response body: {"code":5,"message":"Namespace not found","details":[]}
+
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   ✅ Old chunks removed.
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   📄 Ingesting page teaser (705 words)...
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   ✅ Teaser: 6 search + 0 summary chunks → 'technical'
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   📥 Fetching PDF: https://www.equinix.com/content/dam/eqxcorp/en_us/documents/...
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   ✅ PDF fetched: 235,454 bytes
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   🔑 Content hash: 7a107509...
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   ⏭️  Document unchanged — skipping re-index (same hash).
+2026-06-02 00:11:49,917 [INFO] ingest_worker —   📋 Registry updated in DynamoDB.
+2026-06-02 00:11:49,918 [INFO] ingest_worker —   🎉 Done — 'IDC MarketScape – Worldwide Datacenter Colocation ' v5 searchable.
+2026-06-02 00:11:49,918 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-fsi
+2026-06-02 00:11:51,933 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/idc-decarbonization-benefits-data-centers
+2026-06-02 00:11:51,933 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/idc-decarbonization-benefits-data-centers
+2026-06-02 00:11:51,998 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/idc-decarbonization-benefits-data-centers "HTTP/1.1 200 OK"
+2026-06-02 00:11:52,141 [INFO] pipeline.page_parser — ✅ Parsed 'Social and Environmental Benefits of Data Center D' | type=analyst-report | teaser=561 words | pdf=yes | transcript=no
+2026-06-02 00:11:52,141 [INFO] ingest_worker — Ingesting: type=analyst-report family=idc_decarbonization_benefits_data_centers
+2026-06-02 00:11:52,274 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/idc-decarbonization-benefits-data-centers
+2026-06-02 00:11:52,275 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=idc_decarbonization_benefits_data_centers
+2026-06-02 00:11:52,275 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:52,275 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/idc-decarbonization-benefits-data-centers
+2026-06-02 00:11:54,290 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/pharmaceutical
+2026-06-02 00:11:54,290 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/pharmaceutical
+2026-06-02 00:11:54,360 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/pharmaceutical "HTTP/1.1 200 OK"
+2026-06-02 00:11:54,436 [INFO] pipeline.page_parser — ✅ Parsed 'IOA® - PHARMACEUTICAL BLUEPRINT' | type=blueprint | teaser=66 words | pdf=yes | transcript=no
+2026-06-02 00:11:54,436 [INFO] ingest_worker — Ingesting: type=blueprint family=pharmaceutical
+2026-06-02 00:11:54,556 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/pharmaceutical
+2026-06-02 00:11:54,556 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=pharmaceutical
+2026-06-02 00:11:54,556 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:54,557 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/pharmaceutical
+2026-06-02 00:11:56,571 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-data-cache-edge-placement
+2026-06-02 00:11:56,571 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-data-cache-edge-placement
+2026-06-02 00:11:56,605 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-data-cache-edge-placement "HTTP/1.1 200 OK"
+2026-06-02 00:11:56,682 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – DATA CACHE AND EDGE PLACEMENT' | type=blueprint | teaser=76 words | pdf=yes | transcript=no
+2026-06-02 00:11:56,682 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_data_cache_edge_placement
+2026-06-02 00:11:56,807 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/design-pattern-data-cache-edge-placement
+2026-06-02 00:11:56,808 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=design_pattern_data_cache_edge_placement
+2026-06-02 00:11:56,808 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:56,808 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/design-pattern-data-cache-edge-placement
+2026-06-02 00:11:58,822 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/omdia-automated-networking-for-ai
+2026-06-02 00:11:58,822 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/omdia-automated-networking-for-ai
+2026-06-02 00:11:59,089 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/omdia-automated-networking-for-ai "HTTP/1.1 200 OK"
+2026-06-02 00:11:59,167 [INFO] pipeline.page_parser — ✅ Parsed 'Automated Networking for Distributed AI | Omdia Re' | type=analyst-report | teaser=117 words | pdf=yes | transcript=no
+2026-06-02 00:11:59,167 [INFO] ingest_worker — Ingesting: type=analyst-report family=omdia_automated_networking_for_ai
+2026-06-02 00:11:59,275 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/analyst-reports/omdia-automated-networking-for-ai
+2026-06-02 00:11:59,275 [INFO] ingest_worker —      type=analyst-report | namespace=technical | family=omdia_automated_networking_for_ai
+2026-06-02 00:11:59,275 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:11:59,275 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/analyst-reports/omdia-automated-networking-for-ai
+2026-06-02 00:12:01,294 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-data-controls
+2026-06-02 00:12:01,295 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-data-controls
+2026-06-02 00:12:01,406 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-data-controls "HTTP/1.1 200 OK"
+2026-06-02 00:12:01,543 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – INTEGRATE MULTICLOUD AND DATA CON' | type=blueprint | teaser=87 words | pdf=yes | transcript=no
+2026-06-02 00:12:01,544 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_integrate_multicloud_data_controls
+2026-06-02 00:12:01,761 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-data-controls
+2026-06-02 00:12:01,763 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=design_pattern_integrate_multicloud_data_controls
+2026-06-02 00:12:01,763 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:12:01,763 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-data-controls
+2026-06-02 00:12:03,787 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/data
+2026-06-02 00:12:03,787 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/data
+2026-06-02 00:12:03,840 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/data "HTTP/1.1 200 OK"
+2026-06-02 00:12:03,918 [INFO] pipeline.page_parser — ✅ Parsed 'IOA® - DATA BLUEPRINT' | type=blueprint | teaser=64 words | pdf=yes | transcript=no
+2026-06-02 00:12:03,918 [INFO] ingest_worker — Ingesting: type=blueprint family=data
+2026-06-02 00:12:04,046 [INFO] ingest_worker —   🔀 Routing: https://www.equinix.com/resources/blueprints/data
+2026-06-02 00:12:04,047 [INFO] ingest_worker —      type=blueprint | namespace=technical | family=data
+2026-06-02 00:12:04,047 [INFO] ingest_worker —   ⏭️  Content hash unchanged — skipping.
+2026-06-02 00:12:04,047 [INFO] ingest_worker — ✅ Complete: https://www.equinix.com/resources/blueprints/data
+2026-06-02 00:12:04,613 [INFO] ingest_worker — Shutdown signal — finishing current job then stopping
+2026-06-02 00:12:06,053 [INFO] ingest_worker — Worker stopped — processed=37 failed=0 skipped=0

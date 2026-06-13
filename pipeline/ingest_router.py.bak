@@ -34,10 +34,6 @@ from pipeline.registry import (
     deprecate_old_version,
 )
 
-# ── NEW: enricher import ──────────────────────────────────────────────────────
-import asyncio
-from pipeline.enricher import enrich_chunks_batch, merge_enrichment_into_metadata
-
 log = logging.getLogger(__name__)
 
 # ── Pinecone clients ──────────────────────────────────────────────────────────
@@ -46,17 +42,17 @@ _index   = _pc.Index(settings.PINECONE_INDEX)
 _summary = _pc.Index(settings.PINECONE_SUMMARY_INDEX)
 
 NAMESPACE_MAP = {
-    "whitepaper":       "technical",
-    "blueprint":        "technical",
-    "analyst-report":   "technical",
-    "data-sheet":       "technical",
-    "playbook":         "technical",
-    "case-study":       "business",
-    "solution-brief":   "business",
-    "article":          "business",
-    "media":            "business",
-    "multimedia":       "media",
-    "webinar":          "media",
+    "whitepaper":     "technical",
+    "blueprint":      "technical",
+    "analyst-report": "technical",
+    "data-sheet":     "technical",
+    "playbook":       "technical",
+    "case-study":     "business",
+    "solution-brief": "business",
+    "article":        "business",
+    "media":          "business",
+    "multimedia":     "media",
+    "webinar":        "media",
     "infopaper":        "technical",
     "product-document": "technical",
     "infographic":      "business",
@@ -69,7 +65,7 @@ FETCH_HEADERS = {
 }
 
 
-def route_and_ingest(page: ParsedPage, force: bool = False) -> list[str]:
+def route_and_ingest(page: ParsedPage) -> list[str]:
     """
     Main entry point. Takes a ParsedPage and runs the full ingest.
 
@@ -83,12 +79,12 @@ def route_and_ingest(page: ParsedPage, force: bool = False) -> list[str]:
     logs.append(f"   type={rtype} | namespace={ns} | family={page.document_family}")
 
     # ── Fast pre-check: skip if timestamp unchanged ───────────────────────────
-    if not force and is_unchanged_by_timestamp(page.url, page.og_updated_time):
+    if is_unchanged_by_timestamp(page.url, page.og_updated_time):
         logs.append("⏭️  og:updated_time unchanged — skipping.")
         return logs
 
     # ── Hash check: skip if content unchanged ─────────────────────────────────
-    if not force and is_unchanged(filename=page.document_family, content_hash=page.content_hash, url=page.url):
+    if is_unchanged(filename=page.document_family, content_hash=page.content_hash, url=page.url):
         logs.append("⏭️  Content hash unchanged — skipping.")
         return logs
 
@@ -132,8 +128,6 @@ def route_and_ingest(page: ParsedPage, force: bool = False) -> list[str]:
         pdf_url         = page.pdf_url,
         chunk_type      = "page_teaser",
         embed_model     = embed_model,
-        # ── NEW: pass AEM tags for enrichment ────────────────────────
-        aem_tags        = list(page.tags),
     )
     total_search  += s
     total_summary += su
@@ -152,8 +146,6 @@ def route_and_ingest(page: ParsedPage, force: bool = False) -> list[str]:
             version         = version,
             published_date  = page.published_date,
             embed_model     = embed_model,
-            aem_tags        = list(page.tags),
-            force           = force,
         )
         logs.extend(pdf_logs)
 
@@ -172,8 +164,6 @@ def route_and_ingest(page: ParsedPage, force: bool = False) -> list[str]:
             pdf_url         = "",
             chunk_type      = "transcript",
             embed_model     = embed_model,
-            # ── NEW: pass AEM tags for enrichment ────────────────────
-            aem_tags        = list(page.tags),
         )
         total_search  += s
         total_summary += su
@@ -218,11 +208,8 @@ def _ingest_text(
     pdf_url:         str,
     chunk_type:      str,
     embed_model,
-    aem_tags:        list = None,   # NEW
 ) -> tuple[int, int]:
     """Chunk, embed and upsert a text string. Returns (search_chunks, summary_chunks)."""
-    aem_tags = aem_tags or []       # NEW
-
     header = f"# {title}\nType: {resource_type} | Source: {url}\n---\n"
     metadata = {
         "url":             url,
@@ -259,42 +246,23 @@ def _ingest_text(
     # Search chunks — always indexed
     search_nodes = _make_splitter(1, 80).get_nodes_from_documents([doc], show_progress=False)
     for node in search_nodes:
-        node.excluded_llm_metadata_keys   = ["indexed_at", "pdf_url"]
-        node.excluded_embed_metadata_keys  = ["indexed_at", "pdf_url"]
-
-    # ── NEW: enrich search nodes ──────────────────────────────────────────────
-    search_nodes = _enrich_nodes(
-        nodes         = search_nodes,
-        title         = title,
-        resource_type = resource_type,
-        url           = url,
-        aem_tags      = aem_tags,
-    )
-    # ─────────────────────────────────────────────────────────────────────────
+        node.excluded_llm_metadata_keys  = ["indexed_at", "pdf_url"]
+        node.excluded_embed_metadata_keys = ["indexed_at", "pdf_url"]
 
     search_vs  = PineconeVectorStore(pinecone_index=_index, namespace=namespace)
     search_ctx = StorageContext.from_defaults(vector_store=search_vs)
     VectorStoreIndex(search_nodes, storage_context=search_ctx, embed_model=embed_model)
 
-    # Summary chunks — PDF and transcript only
+    # Summary chunks — PDF and transcript only, not page teasers
+    # Page teasers are already short summaries — no value adding them to summary index
     if chunk_type in ("pdf", "transcript"):
         summary_nodes = _make_splitter(3, 95).get_nodes_from_documents([doc], show_progress=False)
         total = len(summary_nodes)
         for idx, node in enumerate(summary_nodes):
             node.metadata["chunk_index"]  = str(idx)
             node.metadata["total_chunks"] = str(total)
-            node.excluded_llm_metadata_keys   = ["indexed_at", "pdf_url"]
-            node.excluded_embed_metadata_keys  = ["indexed_at", "pdf_url"]
-
-        # ── NEW: enrich summary nodes ─────────────────────────────────────────
-        summary_nodes = _enrich_nodes(
-            nodes         = summary_nodes,
-            title         = title,
-            resource_type = resource_type,
-            url           = url,
-            aem_tags      = aem_tags,
-        )
-        # ─────────────────────────────────────────────────────────────────────
+            node.excluded_llm_metadata_keys  = ["indexed_at", "pdf_url"]
+            node.excluded_embed_metadata_keys = ["indexed_at", "pdf_url"]
 
         summary_vs  = PineconeVectorStore(pinecone_index=_summary, namespace=namespace)
         summary_ctx = StorageContext.from_defaults(vector_store=summary_vs)
@@ -316,11 +284,8 @@ def _ingest_pdf(
     version:         int,
     published_date:  str,
     embed_model,
-    aem_tags:        list = None,   # NEW
-    force:           bool = False,  # NEW
 ) -> list[str]:
     """Fetch PDF from CDN URL and ingest via LlamaParse."""
-    aem_tags = aem_tags or []       # NEW
     logs = []
     try:
         with httpx.Client(headers=FETCH_HEADERS, timeout=60, follow_redirects=True) as client:
@@ -332,6 +297,7 @@ def _ingest_pdf(
         logs.append(f"❌ PDF fetch failed: {e}")
         return logs
 
+    # Write to temp dir and call ingester
     with tempfile.TemporaryDirectory() as tmp_dir:
         filename = document_family + ".pdf"
         pdf_path = os.path.join(tmp_dir, filename)
@@ -347,108 +313,9 @@ def _ingest_pdf(
                 page_url_override   = page_url,
                 document_family     = document_family,
                 published_date      = published_date,
-                aem_tags            = aem_tags,
-                force               = force,
             )
             logs.extend(pdf_logs)
         except Exception as e:
             logs.append(f"❌ PDF ingest failed: {e}")
 
     return logs
-
-
-# ── NEW: enrichment helper ────────────────────────────────────────────────────
-
-def _enrich_nodes(
-    nodes:         list,
-    title:         str,
-    resource_type: str,
-    url:           str,
-    aem_tags:      list,
-) -> list:
-    """
-    Run enrichment on a list of LlamaIndex nodes.
-    Merges enrichment metadata into each node's metadata dict.
-
-    Runs synchronously by creating an event loop — safe because
-    ingest_router.py is called from ingest_worker.py which is synchronous.
-
-    Returns the same nodes with enrichment metadata added.
-    Never raises — enrichment failure is logged but doesn't block ingest.
-    """
-    if not nodes:
-        return nodes
-
-    try:
-        # Convert nodes to chunk dicts for enricher
-        chunks = [
-            {"text": node.text or node.get_content(), "idx": i}
-            for i, node in enumerate(nodes)
-        ]
-
-        # Run async enrichment in a new event loop
-        # (ingest_worker is sync — no existing loop to conflict with)
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If somehow called from async context — use run_coroutine_threadsafe
-                import concurrent.futures
-                future = asyncio.run_coroutine_threadsafe(
-                    enrich_chunks_batch(
-                        chunks        = chunks,
-                        title         = title,
-                        resource_type = resource_type,
-                        url           = url,
-                        aem_tags      = aem_tags,
-                    ),
-                    loop
-                )
-                enriched_chunks = future.result(timeout=120)
-            else:
-                enriched_chunks = loop.run_until_complete(
-                    enrich_chunks_batch(
-                        chunks        = chunks,
-                        title         = title,
-                        resource_type = resource_type,
-                        url           = url,
-                        aem_tags      = aem_tags,
-                    )
-                )
-        except RuntimeError:
-            # No event loop — create one
-            enriched_chunks = asyncio.run(
-                enrich_chunks_batch(
-                    chunks        = chunks,
-                    title         = title,
-                    resource_type = resource_type,
-                    url           = url,
-                    aem_tags      = aem_tags,
-                )
-            )
-
-        # Merge enrichment metadata back into nodes
-        for node, enriched in zip(nodes, enriched_chunks):
-            enrichment = enriched.get("enrichment", {})
-            merged = merge_enrichment_into_metadata(
-                node.metadata,
-                enrichment,
-            )
-            node.metadata = merged
-
-        enriched_count = sum(
-            1 for c in enriched_chunks
-            if c.get("enrichment", {}).get("enriched")
-        )
-        log.info(
-            f"Enrichment: {enriched_count}/{len(nodes)} nodes enriched "
-            f"for '{title[:40]}' ({resource_type})"
-        )
-
-    except Exception as e:
-        # Enrichment failure must never block ingest
-        log.warning(
-            f"Enrichment failed for '{title[:40]}' — "
-            f"ingesting without enrichment: {e}"
-        )
-
-    return nodes

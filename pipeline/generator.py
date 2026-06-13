@@ -1,3 +1,4 @@
+from pipeline.prompt_registry import get_prompt, get_prompt_version
 """
 pipeline/generator.py — Multilingual answer generation with GPT-4o.
 
@@ -26,6 +27,63 @@ from openai import OpenAI
 
 from config import settings
 from langsmith import traceable
+
+# Spell correction for English queries
+try:
+    from spellchecker import SpellChecker
+    _spell = SpellChecker()
+    _SPELL_AVAILABLE = True
+except ImportError:
+    _SPELL_AVAILABLE = False
+    log.warning("pyspellchecker not installed — spell correction disabled")
+
+# Terms that must never be corrected — Equinix product names, codes, acronyms
+_PROTECTED = {
+    "equinix","fabric","xscale","ibx","amer","emea","apac","ioa",
+    "megaport","zayo","fastly","coresite","verizon","lumen","cogent",
+    "pinecone","llamaparse","langsmith","openai","cohere","bedrock",
+    "10gbps","100gbps","400gbps","1gbps","gbps","mbps","tbps",
+    "sv5","sv1","dc2","ny2","la1","ld4","fr5","sg1","ty2","os1","hk1",
+    "colocation","colo","interconnection","mpls","bgp","sdwan","sdn",
+    "multicloud","iaas","paas","saas","vpc","cdn","dns","api","url",
+    "whitepaper","datasheet","infopaper","webinar",
+}
+
+def _correct_spelling(text: str) -> str:
+    """
+    Correct obvious spelling mistakes in English queries.
+    Skips: short words (<=3 chars), PROTECTED domain terms,
+           capitalised words (likely proper nouns), numbers.
+    """
+    if not _SPELL_AVAILABLE:
+        return text
+    words = text.split()
+    corrected = []
+    changed = []
+    for word in words:
+        # Strip punctuation for checking but preserve it
+        clean = ''.join(c for c in word if c.isalpha() or c == '-')
+        lower = clean.lower()
+        # Skip: short, protected, capitalised (proper noun), numeric, already correct
+        if (len(clean) <= 3
+                or lower in _PROTECTED
+                or (clean[0].isupper() and len(words) > 1)
+                or any(c.isdigit() for c in clean)
+                or not _spell.unknown([lower])):
+            corrected.append(word)
+            continue
+        suggestion = _spell.correction(lower)
+        if suggestion and suggestion != lower:
+            # Preserve original capitalisation pattern
+            if clean[0].isupper():
+                suggestion = suggestion.capitalize()
+            corrected.append(word.replace(clean, suggestion))
+            changed.append(f"{clean}→{suggestion}")
+        else:
+            corrected.append(word)
+    if changed:
+        log.info("Spell correction: %s", ", ".join(changed))
+    return " ".join(corrected)
 from langsmith.wrappers import wrap_openai
 from pinecone import Pinecone
 from cache.factory import cache
@@ -59,24 +117,47 @@ LANG_NAMES = {
 }
 
 # ── System prompt ─────────────────────────────────────────────────
-SYSTEM_PROMPT = """You are a multilingual research assistant. Answer the query using ONLY the provided context chunks.
 
-Rules:
-- LANGUAGE: You will be told the exact language to respond in. Always follow it strictly.
-- Write a clear, flowing answer of 2-4 sentences.
-- Each chunk starts with "Document: <name>" — use that document name when citing.
-- Cite sources inline using [1], [2], etc. matching the chunk numbers provided.
-- Be factual and concise.
-- Do NOT make up information not in the context.
-- If nothing relevant found, say the equivalent of "I couldn't find relevant information in the documents." in the specified language.
-- Generate follow-up questions in the SAME specified language.
+# ══════════════════════════════════════════════════════════════
+# PROMPT CHANGE DEPLOYMENT CHECKLIST
+# When SYSTEM_PROMPT in generator.py changes:
+#   1. Increment PROMPT_VERSION here          (semantic_cache.py)
+#   2. Increment pv= in generator.py          (MemoryCache key)
+#   3. Increment CACHE_VERSION here           (full cache invalidation)
+#   4. sudo systemctl restart rag-api         (clears in-process cache)
+#   5. Run cache clear script MODE="semantic" (purge Pinecone entries)
+# ══════════════════════════════════════════════════════════════
+SYSTEM_PROMPT = """You are an expert technical advisor for Equinix — the world's largest digital infrastructure company.
+You help enterprise IT leaders, network architects and procurement decision-makers find precise answers from Equinix's resource library.
 
-Return ONLY a JSON object with exactly these two fields:
+LANGUAGE: Respond entirely in the language specified in the user message.
+All content — answer, citations and follow-up questions — must be in that language.
+
+ANSWER RULES:
+- Use ONLY the provided context chunks. Never invent facts.
+- Write 3-5 sentences in a confident, expert tone as if briefing a CTO or enterprise architect.
+- Lead with the direct answer. Never open with "Based on the documents..." or "According to...".
+- Be specific: include numbers, product names, port speeds, SLAs, and limitations when present in context.
+- Pricing queries with no pricing data in context: say "Pricing for [product] is not in the resource library. Visit equinix.com/contact or speak with a Solutions Architect for a custom quote."
+- Vague queries (e.g. "what equinix does"): answer at a high level and use a clarifying follow-up question.
+- Nothing relevant found: say "I could not find specific information on this in Equinix's resource library. Try rephrasing or contact our team directly."
+
+CITATION RULES:
+- Each chunk starts with "Document: <name>" — use that name when citing.
+- Cite inline using [1], [2] matching chunk numbers.
+- Only cite chunks you actually used. One citation is enough if one chunk answers the question.
+
+FOLLOW-UP RULES:
+- Generate exactly 3 follow-up questions a serious enterprise buyer would ask next.
+- Make them specific to the products and use case — not generic.
+- Progress the buyer journey: specs query → follow-ups probe deployment, pricing, comparison.
+- Never generate "What else can I help you with?" or "Would you like more details?"
+
+Return ONLY valid JSON — no markdown, no backticks, no explanation outside:
 {
-  "answer": "Your answer here with inline [1] citations [2].",
-  "followups": ["Follow-up question 1?", "Follow-up question 2?", "Follow-up question 3?"]
+  "answer": "Your expert answer with inline [1] citations.",
+  "followups": ["Specific follow-up 1?", "Specific follow-up 2?", "Specific follow-up 3?"]
 }
-No markdown, no explanation outside the JSON.
 """
 
 
@@ -160,7 +241,8 @@ def prepare_query(query: str) -> tuple[str, str]:
     detected_lang = detect_language(query)
 
     if detected_lang == "en":
-        return query, "en"
+        corrected = _correct_spelling(query)
+        return corrected, "en"
 
     log.info("Non-English query detected (%s) — translating for retrieval", detected_lang)
     translated = translate_to_english(query)
@@ -168,14 +250,14 @@ def prepare_query(query: str) -> tuple[str, str]:
 
 
 @traceable(name="generate-answer", run_type="llm")
-def generate_answer(query: str, context: str, detected_lang: str = "en") -> dict:
+def generate_answer(query: str, context: str, detected_lang: str = "en", visitor_profile: str = "") -> dict:
     """
     Generate a cited answer using GPT-4o.
     Responds in the language specified by detected_lang.
     Identical (query + context) pairs return cached answers instantly.
     """
     c   = cache()
-    key = MemoryCache.make_key("answer", {"q": query.strip().lower(), "lang": detected_lang})
+    key = MemoryCache.make_key("answer", {"q": query.strip().lower(), "lang": detected_lang, "pv": get_prompt_version("generation", 2)})
 
     cached = c.get(key)
     if cached is not None:
@@ -184,21 +266,23 @@ def generate_answer(query: str, context: str, detected_lang: str = "en") -> dict
         return cached
 
     lang_name    = LANG_NAMES.get(detected_lang, "English")
+    profile_block = f"\n\n[VISITOR MEMORY PROFILE]\n{visitor_profile.strip()}" if visitor_profile and visitor_profile.strip() else ""
     user_message = (
         f"IMPORTANT: Respond entirely in {lang_name}. "
         f"The answer, citations, and all follow-up questions must be in {lang_name}.\n\n"
         f"Query: {query}\n\nContext:\n{context}"
+        f"{profile_block}"
     )
 
     try:
         response = _client.chat.completions.create(
             model=settings.GENERATION_MODEL,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": get_prompt("generation", SYSTEM_PROMPT)},
                 {"role": "user",   "content": user_message},
             ],
-            temperature=0.2,
-            max_tokens=600,
+            temperature=0.1,
+            max_tokens=900,
         )
         raw = response.choices[0].message.content.strip()
 

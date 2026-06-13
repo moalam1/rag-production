@@ -1,0 +1,390 @@
+nohup: ignoring input
+[nltk_data] Downloading package punkt_tab to /home/ssm-
+[nltk_data]     user/.local/lib/python3.9/site-
+[nltk_data]     packages/llama_index/core/_static/nltk_cache...
+[nltk_data]   Package punkt_tab is already up-to-date!
+/home/ssm-user/.local/lib/python3.9/site-packages/boto3/compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+2026-06-02 00:14:18,228 [INFO] botocore.credentials — Found credentials from IAM Role: rag-api-ssm-role
+2026-06-02 00:14:18,280 [INFO] ingest_worker — Worker started — queue: https://sqs.us-east-1.amazonaws.com/141927126501/rag-ingest
+2026-06-02 00:14:18,281 [INFO] ingest_worker — Settings: visibility=300s poll=20s delay=2s
+2026-06-02 00:14:18,350 [INFO] ingest_worker — Queue depth — pending=2527 in_flight=0 dlq=0 | Session: processed=0 failed=0 skipped=0
+2026-06-02 00:14:18,358 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/idc-marketscape-latam-datacenter
+2026-06-02 00:14:18,358 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/idc-marketscape-latam-datacenter
+2026-06-02 00:14:18,475 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/idc-marketscape-latam-datacenter "HTTP/1.1 200 OK"
+2026-06-02 00:14:18,719 [INFO] pipeline.page_parser — ✅ Parsed 'IDC MarketScape – LATAM' | type=analyst-report | teaser=546 words | pdf=yes | transcript=no
+2026-06-02 00:14:18,719 [INFO] ingest_worker — Ingesting: type=analyst-report family=idc_marketscape_latam_datacenter
+2026-06-02 00:14:18,719 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/analyst-reports/idc-marketscape-latam-datacenter — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:18,719 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/analyst-reports/idc-marketscape-latam-datacenter
+2026-06-02 00:14:20,731 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-nsp
+2026-06-02 00:14:20,731 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-nsp
+2026-06-02 00:14:20,803 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-nsp "HTTP/1.1 200 OK"
+2026-06-02 00:14:20,944 [INFO] pipeline.page_parser — ✅ Parsed 'IDC MarketScape – Worldwide Datacenter Colocation ' | type=analyst-report | teaser=702 words | pdf=yes | transcript=no
+2026-06-02 00:14:20,944 [INFO] ingest_worker — Ingesting: type=analyst-report family=interconnection_colocation_equinix_idc_marketscape
+2026-06-02 00:14:20,944 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-nsp — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:20,944 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/analyst-reports/interconnection-colocation-equinix-idc-marketscape-nsp
+2026-06-02 00:14:22,952 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/playbooks/healthcare-industry-playbook
+2026-06-02 00:14:22,952 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/playbooks/healthcare-industry-playbook
+2026-06-02 00:14:23,038 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/playbooks/healthcare-industry-playbook "HTTP/1.1 200 OK"
+2026-06-02 00:14:23,115 [INFO] pipeline.page_parser — ✅ Parsed 'Healthcare -  Digital Edge Playbook' | type=playbook | teaser=83 words | pdf=yes | transcript=no
+2026-06-02 00:14:23,115 [INFO] ingest_worker — Ingesting: type=playbook family=healthcare_industry_playbook
+2026-06-02 00:14:23,115 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/playbooks/healthcare-industry-playbook — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:23,115 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/playbooks/healthcare-industry-playbook
+2026-06-02 00:14:25,122 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/trading-technology-private-infrastructure
+2026-06-02 00:14:25,122 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/trading-technology-private-infrastructure
+2026-06-02 00:14:25,261 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/trading-technology-private-infrastructure "HTTP/1.1 200 OK"
+2026-06-02 00:14:25,398 [INFO] pipeline.page_parser — ✅ Parsed 'Trading Private Infrastructure' | type=analyst-report | teaser=397 words | pdf=yes | transcript=no
+2026-06-02 00:14:25,398 [INFO] ingest_worker — Ingesting: type=analyst-report family=trading_technology_private_infrastructure
+2026-06-02 00:14:25,399 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/analyst-reports/trading-technology-private-infrastructure — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:25,399 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/analyst-reports/trading-technology-private-infrastructure
+2026-06-02 00:14:27,408 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/ai-maturity-in-banking-and-investment-services
+2026-06-02 00:14:27,408 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/ai-maturity-in-banking-and-investment-services
+2026-06-02 00:14:27,457 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/ai-maturity-in-banking-and-investment-services "HTTP/1.1 200 OK"
+2026-06-02 00:14:27,595 [INFO] pipeline.page_parser — ✅ Parsed 'Assess AI maturity, optimizing banking infrastruct' | type=analyst-report | teaser=566 words | pdf=no | transcript=no
+2026-06-02 00:14:27,595 [INFO] ingest_worker — Ingesting: type=analyst-report family=ai_maturity_in_banking_and_investment_services
+2026-06-02 00:14:27,595 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/analyst-reports/ai-maturity-in-banking-and-investment-services — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:27,595 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/analyst-reports/ai-maturity-in-banking-and-investment-services
+2026-06-02 00:14:29,605 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/distributed-security
+2026-06-02 00:14:29,605 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/distributed-security
+2026-06-02 00:14:29,744 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/distributed-security "HTTP/1.1 200 OK"
+2026-06-02 00:14:29,817 [INFO] pipeline.page_parser — ✅ Parsed 'IOA - Distributed Security Strategy' | type=blueprint | teaser=110 words | pdf=yes | transcript=no
+2026-06-02 00:14:29,818 [INFO] ingest_worker — Ingesting: type=blueprint family=distributed_security
+2026-06-02 00:14:29,818 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/distributed-security — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:29,818 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/distributed-security
+2026-06-02 00:14:31,828 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/whitepapers/osaka-tokyo-remote-connection
+2026-06-02 00:14:31,828 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/whitepapers/osaka-tokyo-remote-connection
+2026-06-02 00:14:31,980 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/whitepapers/osaka-tokyo-remote-connection "HTTP/1.1 200 OK"
+2026-06-02 00:14:32,118 [INFO] pipeline.page_parser — ✅ Parsed 'Remote connection between Tokyo and Osaka Whitepap' | type=whitepaper | teaser=405 words | pdf=yes | transcript=no
+2026-06-02 00:14:32,118 [INFO] ingest_worker — Ingesting: type=whitepaper family=osaka_tokyo_remote_connection
+2026-06-02 00:14:32,118 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/whitepapers/osaka-tokyo-remote-connection — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:32,119 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/whitepapers/osaka-tokyo-remote-connection
+2026-06-02 00:14:34,131 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/whitepapers/singapore-digital-infrastructure-for-the-smart-nation
+2026-06-02 00:14:34,131 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/whitepapers/singapore-digital-infrastructure-for-the-smart-nation
+2026-06-02 00:14:34,162 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/whitepapers/singapore-digital-infrastructure-for-the-smart-nation "HTTP/1.1 200 OK"
+2026-06-02 00:14:34,298 [INFO] pipeline.page_parser — ✅ Parsed 'SINGAPORE SMART NATION INFRASTRUCTURE' | type=whitepaper | teaser=429 words | pdf=yes | transcript=no
+2026-06-02 00:14:34,298 [INFO] ingest_worker — Ingesting: type=whitepaper family=singapore_digital_infrastructure_for_the_smart_nat
+2026-06-02 00:14:34,298 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/whitepapers/singapore-digital-infrastructure-for-the-smart-nation — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:34,298 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/whitepapers/singapore-digital-infrastructure-for-the-smart-nation
+2026-06-02 00:14:36,305 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/application
+2026-06-02 00:14:36,306 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/application
+2026-06-02 00:14:36,381 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/application "HTTP/1.1 200 OK"
+2026-06-02 00:14:36,457 [INFO] pipeline.page_parser — ✅ Parsed 'IOA® - APPLICATIONS BLUEPRINT' | type=blueprint | teaser=117 words | pdf=yes | transcript=no
+2026-06-02 00:14:36,457 [INFO] ingest_worker — Ingesting: type=blueprint family=application
+2026-06-02 00:14:36,457 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/application — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:36,457 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/application
+2026-06-02 00:14:38,465 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/whitepapers/real-time-payments-trends-ebook
+2026-06-02 00:14:38,465 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/whitepapers/real-time-payments-trends-ebook
+2026-06-02 00:14:38,501 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/whitepapers/real-time-payments-trends-ebook "HTTP/1.1 200 OK"
+2026-06-02 00:14:38,640 [INFO] pipeline.page_parser — ✅ Parsed 'Global Trends for Real-Time Payments ebook' | type=whitepaper | teaser=419 words | pdf=yes | transcript=no
+2026-06-02 00:14:38,640 [INFO] ingest_worker — Ingesting: type=whitepaper family=real_time_payments_trends_ebook
+2026-06-02 00:14:38,640 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/whitepapers/real-time-payments-trends-ebook — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:38,640 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/whitepapers/real-time-payments-trends-ebook
+2026-06-02 00:14:40,648 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/solution-briefs/transforming-financial-services
+2026-06-02 00:14:40,648 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/solution-briefs/transforming-financial-services
+2026-06-02 00:14:40,768 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/solution-briefs/transforming-financial-services "HTTP/1.1 301 Moved Permanently"
+2026-06-02 00:14:40,787 [INFO] httpx — HTTP Request: GET https://www.equinix.com/industries/financial-services "HTTP/1.1 200 OK"
+2026-06-02 00:14:40,891 [INFO] pipeline.page_parser — ✅ Parsed 'Secure Digital Infrastructure for Financial Servic' | type=solution-brief | teaser=500 words | pdf=no | transcript=no
+2026-06-02 00:14:40,891 [INFO] ingest_worker — Ingesting: type=solution-brief family=transforming_financial_services
+2026-06-02 00:14:40,891 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/solution-briefs/transforming-financial-services — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:40,891 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/solution-briefs/transforming-financial-services
+2026-06-02 00:14:42,899 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/analyst-reports/451-workload-placement-strategies
+2026-06-02 00:14:42,899 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/analyst-reports/451-workload-placement-strategies
+2026-06-02 00:14:43,016 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/analyst-reports/451-workload-placement-strategies "HTTP/1.1 200 OK"
+2026-06-02 00:14:43,211 [INFO] pipeline.page_parser — ✅ Parsed 'Modern IT Pressures Reshape Workload Placement Str' | type=analyst-report | teaser=96 words | pdf=yes | transcript=no
+2026-06-02 00:14:43,211 [INFO] ingest_worker — Ingesting: type=analyst-report family=451_workload_placement_strategies
+2026-06-02 00:14:43,211 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/analyst-reports/451-workload-placement-strategies — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:43,211 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/analyst-reports/451-workload-placement-strategies
+2026-06-02 00:14:45,218 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/solution-briefs/akamai
+2026-06-02 00:14:45,219 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/solution-briefs/akamai
+2026-06-02 00:14:45,309 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/solution-briefs/akamai "HTTP/1.1 200 OK"
+2026-06-02 00:14:45,385 [INFO] pipeline.page_parser — ✅ Parsed 'Protect against a range of DDoS attacks with Akama' | type=solution-brief | teaser=116 words | pdf=yes | transcript=no
+2026-06-02 00:14:45,385 [INFO] ingest_worker — Ingesting: type=solution-brief family=akamai
+2026-06-02 00:14:45,385 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/solution-briefs/akamai — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:45,385 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/solution-briefs/akamai
+2026-06-02 00:14:47,393 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-apply-distributed-coordination
+2026-06-02 00:14:47,393 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-apply-distributed-coordination
+2026-06-02 00:14:47,470 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-apply-distributed-coordination "HTTP/1.1 200 OK"
+2026-06-02 00:14:47,545 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – APPLY DISTRIBUTED COORDINATION' | type=blueprint | teaser=71 words | pdf=yes | transcript=no
+2026-06-02 00:14:47,545 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_apply_distributed_coordination
+2026-06-02 00:14:47,545 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/design-pattern-apply-distributed-coordination — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:47,546 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/design-pattern-apply-distributed-coordination
+2026-06-02 00:14:49,553 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/solution-briefs/gdc-at-equinix
+2026-06-02 00:14:49,553 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/solution-briefs/gdc-at-equinix
+2026-06-02 00:14:49,662 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/solution-briefs/gdc-at-equinix "HTTP/1.1 200 OK"
+2026-06-02 00:14:49,736 [INFO] pipeline.page_parser — ✅ Parsed 'GDC at Equinix' | type=solution-brief | teaser=76 words | pdf=yes | transcript=no
+2026-06-02 00:14:49,736 [INFO] ingest_worker — Ingesting: type=solution-brief family=gdc_at_equinix
+2026-06-02 00:14:49,736 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/solution-briefs/gdc-at-equinix — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:49,736 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/solution-briefs/gdc-at-equinix
+2026-06-02 00:14:51,743 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/energy-oil-and-gas
+2026-06-02 00:14:51,743 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/energy-oil-and-gas
+2026-06-02 00:14:51,889 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/energy-oil-and-gas "HTTP/1.1 200 OK"
+2026-06-02 00:14:51,964 [INFO] pipeline.page_parser — ✅ Parsed 'IOA - Energy, Oil and Gas Blueprint' | type=blueprint | teaser=78 words | pdf=yes | transcript=no
+2026-06-02 00:14:51,964 [INFO] ingest_worker — Ingesting: type=blueprint family=energy_oil_and_gas
+2026-06-02 00:14:51,964 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/energy-oil-and-gas — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:51,964 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/energy-oil-and-gas
+2026-06-02 00:14:53,971 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/federal-government
+2026-06-02 00:14:53,971 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/federal-government
+2026-06-02 00:14:54,033 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/federal-government "HTTP/1.1 200 OK"
+2026-06-02 00:14:54,109 [INFO] pipeline.page_parser — ✅ Parsed 'IOA - Federal Government Blueprint' | type=blueprint | teaser=82 words | pdf=yes | transcript=no
+2026-06-02 00:14:54,109 [INFO] ingest_worker — Ingesting: type=blueprint family=federal_government
+2026-06-02 00:14:54,109 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/federal-government — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:54,109 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/federal-government
+2026-06-02 00:14:56,117 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/solution-briefs/vcf-equinix-metal
+2026-06-02 00:14:56,117 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/solution-briefs/vcf-equinix-metal
+2026-06-02 00:14:56,218 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/solution-briefs/vcf-equinix-metal "HTTP/1.1 301 Moved Permanently"
+2026-06-02 00:14:56,231 [INFO] httpx — HTTP Request: GET http://www.equinix.com/resources "HTTP/1.1 301 Moved Permanently"
+2026-06-02 00:14:56,311 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources "HTTP/1.1 200 OK"
+2026-06-02 00:14:56,387 [INFO] pipeline.page_parser — ✅ Parsed 'Data Center Resources, Research & Reports | Equini' | type=solution-brief | teaser=34 words | pdf=no | transcript=no
+2026-06-02 00:14:56,387 [INFO] ingest_worker — Ingesting: type=solution-brief family=vcf_equinix_metal
+2026-06-02 00:14:56,387 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/solution-briefs/vcf-equinix-metal — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:56,387 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/solution-briefs/vcf-equinix-metal
+2026-06-02 00:14:58,395 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-apply-global-transactional-compliance
+2026-06-02 00:14:58,395 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-apply-global-transactional-compliance
+2026-06-02 00:14:58,464 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-apply-global-transactional-compliance "HTTP/1.1 200 OK"
+2026-06-02 00:14:58,540 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – APPLY GLOBAL TRANSACTIONAL COMPLI' | type=blueprint | teaser=76 words | pdf=yes | transcript=no
+2026-06-02 00:14:58,540 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_apply_global_transactional_complian
+2026-06-02 00:14:58,540 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/design-pattern-apply-global-transactional-compliance — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:14:58,540 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/design-pattern-apply-global-transactional-compliance
+2026-06-02 00:15:00,549 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/solution-briefs/multicloud-networking-solution-design-network-edge
+2026-06-02 00:15:00,549 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/solution-briefs/multicloud-networking-solution-design-network-edge
+2026-06-02 00:15:00,578 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/solution-briefs/multicloud-networking-solution-design-network-edge "HTTP/1.1 200 OK"
+2026-06-02 00:15:00,714 [INFO] pipeline.page_parser — ✅ Parsed 'Simplify Hybrid Multicloud Networking' | type=solution-brief | teaser=474 words | pdf=yes | transcript=no
+2026-06-02 00:15:00,714 [INFO] ingest_worker — Ingesting: type=solution-brief family=multicloud_networking_solution_design_network_edge
+2026-06-02 00:15:00,714 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/solution-briefs/multicloud-networking-solution-design-network-edge — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:00,714 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/solution-briefs/multicloud-networking-solution-design-network-edge
+2026-06-02 00:15:02,726 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/success-stories/link11
+2026-06-02 00:15:02,726 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/success-stories/link11
+2026-06-02 00:15:02,795 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/success-stories/link11 "HTTP/1.1 200 OK"
+2026-06-02 00:15:02,873 [INFO] pipeline.page_parser — ✅ Parsed 'Link11 Case Study' | type=success-story | teaser=136 words | pdf=yes | transcript=no
+2026-06-02 00:15:02,873 [INFO] ingest_worker — Ingesting: type=success-story family=link11
+2026-06-02 00:15:02,873 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/success-stories/link11 — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:02,873 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/success-stories/link11
+2026-06-02 00:15:04,880 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-inspection-zone
+2026-06-02 00:15:04,880 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-inspection-zone
+2026-06-02 00:15:04,950 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-inspection-zone "HTTP/1.1 200 OK"
+2026-06-02 00:15:05,029 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – INSPECTION ZONE' | type=blueprint | teaser=82 words | pdf=yes | transcript=no
+2026-06-02 00:15:05,029 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_inspection_zone
+2026-06-02 00:15:05,029 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/design-pattern-inspection-zone — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:05,030 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/design-pattern-inspection-zone
+2026-06-02 00:15:07,037 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-data-exchanges-data-integration
+2026-06-02 00:15:07,037 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-data-exchanges-data-integration
+2026-06-02 00:15:07,128 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-data-exchanges-data-integration "HTTP/1.1 200 OK"
+2026-06-02 00:15:07,206 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – DATA EXCHANGES AND DATA INTEGRATI' | type=blueprint | teaser=73 words | pdf=yes | transcript=no
+2026-06-02 00:15:07,206 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_data_exchanges_data_integration
+2026-06-02 00:15:07,206 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/design-pattern-data-exchanges-data-integration — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:07,206 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/design-pattern-data-exchanges-data-integration
+2026-06-02 00:15:09,213 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-business-flows
+2026-06-02 00:15:09,213 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-business-flows
+2026-06-02 00:15:09,263 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-business-flows "HTTP/1.1 200 OK"
+2026-06-02 00:15:09,338 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – INTEGRATE MULTICLOUD BUSINESS FLO' | type=blueprint | teaser=86 words | pdf=yes | transcript=no
+2026-06-02 00:15:09,338 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_integrate_multicloud_business_flows
+2026-06-02 00:15:09,338 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-business-flows — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:09,338 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/design-pattern-integrate-multicloud-business-flows
+2026-06-02 00:15:11,346 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-data-pipelines-provenance
+2026-06-02 00:15:11,346 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-data-pipelines-provenance
+2026-06-02 00:15:11,422 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-data-pipelines-provenance "HTTP/1.1 200 OK"
+2026-06-02 00:15:11,498 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – DATA PIPELINES AND PROVENANCE' | type=blueprint | teaser=88 words | pdf=yes | transcript=no
+2026-06-02 00:15:11,499 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_data_pipelines_provenance
+2026-06-02 00:15:11,499 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/design-pattern-data-pipelines-provenance — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:11,499 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/design-pattern-data-pipelines-provenance
+2026-06-02 00:15:13,506 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/whitepapers/vmware-aws-equinix
+2026-06-02 00:15:13,506 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/whitepapers/vmware-aws-equinix
+2026-06-02 00:15:13,579 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/whitepapers/vmware-aws-equinix "HTTP/1.1 200 OK"
+2026-06-02 00:15:13,717 [INFO] pipeline.page_parser — ✅ Parsed 'VMware, AWS and Equinix Solution Brief' | type=whitepaper | teaser=431 words | pdf=yes | transcript=no
+2026-06-02 00:15:13,717 [INFO] ingest_worker — Ingesting: type=whitepaper family=vmware_aws_equinix
+2026-06-02 00:15:13,717 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/whitepapers/vmware-aws-equinix — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:13,717 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/whitepapers/vmware-aws-equinix
+2026-06-02 00:15:15,724 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-localize-public-digital-services
+2026-06-02 00:15:15,724 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-localize-public-digital-services
+2026-06-02 00:15:16,132 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-localize-public-digital-services "HTTP/1.1 200 OK"
+2026-06-02 00:15:16,206 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – LOCALIZE PUBLIC DIGITAL SERVICES' | type=blueprint | teaser=75 words | pdf=yes | transcript=no
+2026-06-02 00:15:16,206 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_localize_public_digital_services
+2026-06-02 00:15:16,206 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/design-pattern-localize-public-digital-services — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:16,206 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/design-pattern-localize-public-digital-services
+2026-06-02 00:15:18,214 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/solution-briefs/f5-retail-app-delivery
+2026-06-02 00:15:18,215 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/solution-briefs/f5-retail-app-delivery
+2026-06-02 00:15:18,274 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/solution-briefs/f5-retail-app-delivery "HTTP/1.1 200 OK"
+2026-06-02 00:15:18,348 [INFO] pipeline.page_parser — ✅ Parsed 'F5 - Retail App Delivery' | type=solution-brief | teaser=80 words | pdf=yes | transcript=no
+2026-06-02 00:15:18,349 [INFO] ingest_worker — Ingesting: type=solution-brief family=f5_retail_app_delivery
+2026-06-02 00:15:18,349 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/solution-briefs/f5-retail-app-delivery — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:18,349 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/solution-briefs/f5-retail-app-delivery
+2026-06-02 00:15:20,356 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/whitepapers/key-trends-digital-payments
+2026-06-02 00:15:20,356 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/whitepapers/key-trends-digital-payments
+2026-06-02 00:15:20,472 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/whitepapers/key-trends-digital-payments "HTTP/1.1 200 OK"
+2026-06-02 00:15:20,606 [INFO] pipeline.page_parser — ✅ Parsed 'Banking and payments infrastructure' | type=whitepaper | teaser=414 words | pdf=yes | transcript=no
+2026-06-02 00:15:20,606 [INFO] ingest_worker — Ingesting: type=whitepaper family=key_trends_digital_payments
+2026-06-02 00:15:20,607 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/whitepapers/key-trends-digital-payments — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:20,607 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/whitepapers/key-trends-digital-payments
+2026-06-02 00:15:22,621 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/security
+2026-06-02 00:15:22,622 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/security
+2026-06-02 00:15:22,704 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/security "HTTP/1.1 200 OK"
+2026-06-02 00:15:22,780 [INFO] pipeline.page_parser — ✅ Parsed 'IOA - Security Blueprint' | type=blueprint | teaser=62 words | pdf=yes | transcript=no
+2026-06-02 00:15:22,780 [INFO] ingest_worker — Ingesting: type=blueprint family=security
+2026-06-02 00:15:22,780 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/security — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:22,780 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/security
+2026-06-02 00:15:24,791 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/solution-briefs/hybrid-big-data-replication-wandisco-equinix-modern-infrastructure
+2026-06-02 00:15:24,791 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/solution-briefs/hybrid-big-data-replication-wandisco-equinix-modern-infrastructure
+2026-06-02 00:15:24,848 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/solution-briefs/hybrid-big-data-replication-wandisco-equinix-modern-infrastructure "HTTP/1.1 200 OK"
+2026-06-02 00:15:24,924 [INFO] pipeline.page_parser — ✅ Parsed 'Equinix and WANdisco provide a modern infrastructu' | type=solution-brief | teaser=117 words | pdf=yes | transcript=no
+2026-06-02 00:15:24,924 [INFO] ingest_worker — Ingesting: type=solution-brief family=hybrid_big_data_replication_wandisco_equinix_moder
+2026-06-02 00:15:24,924 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/solution-briefs/hybrid-big-data-replication-wandisco-equinix-modern-infrastructure — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:24,924 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/solution-briefs/hybrid-big-data-replication-wandisco-equinix-modern-infrastructure
+2026-06-02 00:15:26,931 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/solution-briefs/zscaler
+2026-06-02 00:15:26,931 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/solution-briefs/zscaler
+2026-06-02 00:15:26,997 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/solution-briefs/zscaler "HTTP/1.1 200 OK"
+2026-06-02 00:15:27,072 [INFO] pipeline.page_parser — ✅ Parsed 'ZSCALER CLOUD SECURITY' | type=solution-brief | teaser=123 words | pdf=yes | transcript=no
+2026-06-02 00:15:27,072 [INFO] ingest_worker — Ingesting: type=solution-brief family=zscaler
+2026-06-02 00:15:27,072 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/solution-briefs/zscaler — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:27,073 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/solution-briefs/zscaler
+2026-06-02 00:15:29,080 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/solution-briefs/equinix-internet-access-leaders
+2026-06-02 00:15:29,080 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/solution-briefs/equinix-internet-access-leaders
+2026-06-02 00:15:29,132 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/solution-briefs/equinix-internet-access-leaders "HTTP/1.1 200 OK"
+2026-06-02 00:15:29,207 [INFO] pipeline.page_parser — ✅ Parsed 'Equinix Internet Access solution brief' | type=solution-brief | teaser=111 words | pdf=yes | transcript=no
+2026-06-02 00:15:29,207 [INFO] ingest_worker — Ingesting: type=solution-brief family=equinix_internet_access_leaders
+2026-06-02 00:15:29,207 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/solution-briefs/equinix-internet-access-leaders — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:29,207 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/solution-briefs/equinix-internet-access-leaders
+2026-06-02 00:15:31,214 [INFO] ingest_worker — Parsing: https://www.equinix.com/resources/blueprints/design-pattern-locally-integrate-cloud-content
+2026-06-02 00:15:31,214 [INFO] pipeline.page_parser — Parsing page: https://www.equinix.com/resources/blueprints/design-pattern-locally-integrate-cloud-content
+2026-06-02 00:15:31,302 [INFO] httpx — HTTP Request: GET https://www.equinix.com/resources/blueprints/design-pattern-locally-integrate-cloud-content "HTTP/1.1 200 OK"
+2026-06-02 00:15:31,377 [INFO] pipeline.page_parser — ✅ Parsed 'DESIGN PATTERN – LOCALLY INTEGRATE CLOUD CONTENT' | type=blueprint | teaser=86 words | pdf=yes | transcript=no
+2026-06-02 00:15:31,377 [INFO] ingest_worker — Ingesting: type=blueprint family=design_pattern_locally_integrate_cloud_content
+2026-06-02 00:15:31,377 [ERROR] ingest_worker — ❌ Failed: https://www.equinix.com/resources/blueprints/design-pattern-locally-integrate-cloud-content — name 'force' is not defined
+Traceback (most recent call last):
+  File "/home/ssm-user/rag-production/scripts/ingest_worker.py", line 56, in process_url
+    logs = route_and_ingest(parsed, force=force)
+NameError: name 'force' is not defined
+2026-06-02 00:15:31,378 [WARNING] ingest_worker — Message left in queue for retry: https://www.equinix.com/resources/blueprints/design-pattern-locally-integrate-cloud-content
+2026-06-02 00:15:32,261 [INFO] ingest_worker — Shutdown signal — finishing current job then stopping
+2026-06-02 00:15:33,379 [INFO] ingest_worker — Worker stopped — processed=0 failed=34 skipped=0

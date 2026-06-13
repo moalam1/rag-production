@@ -135,9 +135,9 @@ def build_context(chunks: list[dict]) -> str:
     parts = []
     for i, chunk in enumerate(chunks, 1):
         parts.append(
-            f"[Chunk {i} | Source: {chunk['clean_name']} | "
-            f"Page: {chunk['page']} | Score: {chunk['rerank_score']}]\n"
-            f"{chunk['text']}"
+            f"[Chunk {i} | Source: {chunk.get('clean_name', chunk.get('filename', 'Unknown'))} | "
+            f"Page: {chunk.get('page', '?')} | Score: {chunk.get('rerank_score', 0.0)}]\n"
+            f"{chunk.get('text', '')}"
         )
     return "\n\n---\n\n".join(parts)
     

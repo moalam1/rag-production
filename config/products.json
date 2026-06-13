@@ -1,0 +1,162 @@
+{
+  "generated_at": "2026-05-31T04:24:12.204830+00:00",
+  "sources": [
+    "corpus (25 raw names)",
+    "sitemap (18 raw names)"
+  ],
+  "product_count": 11,
+  "total_names": 27,
+  "products": [
+    {
+      "canonical": "Equinix Fabric",
+      "aliases": [
+        "Fabric",
+        "EF"
+      ],
+      "category": "interconnection",
+      "description": "Software-defined interconnection platform"
+    },
+    {
+      "canonical": "Equinix Metal",
+      "aliases": [
+        "Bare Metal",
+        "Metal"
+      ],
+      "category": "compute",
+      "description": "Dedicated bare metal servers"
+    },
+    {
+      "canonical": "Cloud Exchange",
+      "aliases": [
+        "ECX",
+        "Equinix Cloud Exchange"
+      ],
+      "category": "cloud",
+      "description": "Cloud interconnection service"
+    },
+    {
+      "canonical": "Equinix Connect",
+      "aliases": [
+        "Connect"
+      ],
+      "category": "interconnection",
+      "description": "Direct connectivity to Equinix services"
+    },
+    {
+      "canonical": "Equinix Internet Exchange",
+      "aliases": [
+        "IX"
+      ],
+      "category": "interconnection",
+      "description": "Global interconnection platform for networks"
+    },
+    {
+      "canonical": "Network Edge",
+      "aliases": [
+        "NE"
+      ],
+      "category": "networking",
+      "description": "Virtual network services at the edge"
+    },
+    {
+      "canonical": "IBX Data Centers",
+      "aliases": [
+        "IBX"
+      ],
+      "category": "colocation",
+      "description": "Equinix's global data center facilities"
+    },
+    {
+      "canonical": "Equinix Managed Services",
+      "aliases": [
+        "EMS",
+        "Managed Services"
+      ],
+      "category": "cloud",
+      "description": "Managed IT services by Equinix"
+    },
+    {
+      "canonical": "Equinix Performance Hub",
+      "aliases": [
+        "Performance Hub"
+      ],
+      "category": "platform",
+      "description": "Performance optimization for applications"
+    },
+    {
+      "canonical": "Equinix Precision Time",
+      "aliases": [
+        "PTaaS",
+        "Precision Time"
+      ],
+      "category": "timing",
+      "description": "Time synchronization services"
+    },
+    {
+      "canonical": "SmartKey",
+      "aliases": [
+        "Equinix SmartKey"
+      ],
+      "category": "security",
+      "description": "Hardware security module as a service"
+    }
+  ],
+  "_all_names": [
+    "Bare Metal",
+    "Cloud Exchange",
+    "Connect",
+    "ECX",
+    "EF",
+    "EMS",
+    "Equinix Cloud Exchange",
+    "Equinix Connect",
+    "Equinix Fabric",
+    "Equinix Internet Exchange",
+    "Equinix Managed Services",
+    "Equinix Metal",
+    "Equinix Performance Hub",
+    "Equinix Precision Time",
+    "Equinix SmartKey",
+    "Fabric",
+    "IBX",
+    "IBX Data Centers",
+    "IX",
+    "Managed Services",
+    "Metal",
+    "NE",
+    "Network Edge",
+    "PTaaS",
+    "Performance Hub",
+    "Precision Time",
+    "SmartKey"
+  ],
+  "_alias_to_canonical": {
+    "equinix fabric": "Equinix Fabric",
+    "fabric": "Equinix Fabric",
+    "ef": "Equinix Fabric",
+    "equinix metal": "Equinix Metal",
+    "bare metal": "Equinix Metal",
+    "metal": "Equinix Metal",
+    "cloud exchange": "Cloud Exchange",
+    "ecx": "Cloud Exchange",
+    "equinix cloud exchange": "Cloud Exchange",
+    "equinix connect": "Equinix Connect",
+    "connect": "Equinix Connect",
+    "equinix internet exchange": "Equinix Internet Exchange",
+    "ix": "Equinix Internet Exchange",
+    "network edge": "Network Edge",
+    "ne": "Network Edge",
+    "ibx data centers": "IBX Data Centers",
+    "ibx": "IBX Data Centers",
+    "equinix managed services": "Equinix Managed Services",
+    "ems": "Equinix Managed Services",
+    "managed services": "Equinix Managed Services",
+    "equinix performance hub": "Equinix Performance Hub",
+    "performance hub": "Equinix Performance Hub",
+    "equinix precision time": "Equinix Precision Time",
+    "ptaas": "Equinix Precision Time",
+    "precision time": "Equinix Precision Time",
+    "smartkey": "SmartKey",
+    "equinix smartkey": "SmartKey"
+  }
+}
