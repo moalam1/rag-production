@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Platform — Admin Console</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0a0a0a; --panel: #111; --panel2: #161616; --border: #222; --border2: #2e2e2e;
+            --text: #e5e5e5; --text2: #9ca3af; --text3: #6b7280; --text4: #4b5563;
+            --accent: #7c5cfc; --accent-dim: #7c5cfc33;
+            --green: #4ade80; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; --cyan: #5eead4;
+            --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* ── Topbar ── */
+        .topbar { background: var(--panel); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .logo { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
+        .title { font-size: 15px; font-weight: 500; }
+        .env-pill { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 10px; background: var(--accent-dim); color: var(--accent); letter-spacing: 0.05em; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .conn-input { font-size: 12px; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border2); background: var(--bg); color: var(--text); width: 220px; font-family: var(--mono); outline: none; }
+        .conn-input:focus { border-color: var(--accent); }
+        .btn { font-size: 12px; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; }
+        .btn:hover { background: var(--panel2); color: var(--text); }
+        .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+        .btn.primary:hover { background: #6a4ce8; }
+        .btn.danger { color: var(--red); border-color: #f8717133; }
+        .btn.danger:hover { background: #f8717111; }
+        .btn:disabled { opacity: .45; cursor: not-allowed; }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text4); }
+        .live-dot.on { background: var(--green); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+        /* ── Tabs ── */
+        .tab-nav { display: flex; border-bottom: 1px solid var(--border); background: var(--panel); padding: 0 24px; overflow-x: auto; }
+        .tab-btn { font-size: 13px; font-weight: 500; color: var(--text3); padding: 13px 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; transition: color .15s; }
+        .tab-btn:hover { color: var(--text2); }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .main { max-width: 1240px; margin: 0 auto; padding: 24px; }
+        .tab-view { display: none; }
+        .tab-view.active { display: block; }
+
+        /* ── Cards / metrics ── */
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+        .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+        .card-title { font-size: 14px; font-weight: 500; }
+        .card-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+        .card-body { padding: 18px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+        .metric { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+        .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .metric-value { font-size: 26px; font-weight: 600; }
+        .metric-sub { font-size: 11px; color: var(--text4); margin-top: 4px; }
+
+        /* ── Signature: tag chip editor ── */
+        .sig-section { margin-bottom: 14px; }
+        .sig-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .sig-name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .sig-count { font-size: 11px; color: var(--text4); font-weight: 400; }
+        .sig-desc { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+        .chip-box { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; min-height: 52px; }
+        .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-family: var(--mono); padding: 4px 8px 4px 10px; border-radius: 6px; border: 1px solid; cursor: default; animation: chipIn .15s ease; }
+        @keyframes chipIn { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .chip .x { cursor: pointer; opacity: .55; font-size: 13px; line-height: 1; padding: 0 1px; }
+        .chip .x:hover { opacity: 1; }
+        .chip .map { opacity: .6; font-size: 10px; }
+        .chip-add { display: inline-flex; align-items: center; }
+        .chip-add input { font-size: 12px; font-family: var(--mono); background: transparent; border: 1px dashed var(--border2); border-radius: 6px; color: var(--text); padding: 4px 10px; width: 150px; outline: none; }
+        .chip-add input:focus { border-color: var(--accent); border-style: solid; }
+        .dirty-bar { position: sticky; bottom: 16px; display: none; align-items: center; justify-content: space-between; background: #1a1438; border: 1px solid var(--accent); border-radius: 10px; padding: 12px 18px; margin-top: 10px; box-shadow: 0 8px 30px #00000088; }
+        .dirty-bar.show { display: flex; }
+        .dirty-text { font-size: 13px; color: #c4b5fd; }
+
+        /* ── Tables ── */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 9px 14px; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--border); font-weight: 500; }
+        td { padding: 11px 14px; border-bottom: 1px solid #1a1a1a; color: var(--text2); }
+        tr:last-child td { border-bottom: none; }
+        td.mono, .mono { font-family: var(--mono); font-size: 12px; }
+        .pill { display: inline-flex; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+        .pill.green { background: #16a34a22; color: var(--green); }
+        .pill.amber { background: #d9770622; color: var(--amber); }
+        .pill.red { background: #dc262622; color: var(--red); }
+        .pill.blue { background: #185FA522; color: var(--blue); }
+        .pill.violet { background: var(--accent-dim); color: #c4b5fd; }
+
+        /* ── Projects ── */
+        .proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+        .proj-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; transition: border-color .15s; }
+        .proj-card:hover { border-color: var(--border2); }
+        .proj-card.new { border-style: dashed; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text3); cursor: pointer; min-height: 200px; }
+        .proj-card.new:hover { border-color: var(--accent); color: var(--accent); }
+        .proj-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .proj-name { font-size: 15px; font-weight: 600; }
+        .proj-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 12px 0; }
+        .proj-stat { background: var(--bg); border-radius: 7px; padding: 8px 10px; }
+        .proj-stat-v { font-size: 16px; font-weight: 600; }
+        .proj-stat-l { font-size: 10px; color: var(--text4); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+        .flow-steps { display: flex; gap: 4px; margin-top: 8px; }
+        .flow-step { flex: 1; height: 4px; border-radius: 2px; background: var(--border); }
+        .flow-step.done { background: var(--accent); }
+
+        /* ── Prompt studio ── */
+        .prompt-area { width: 100%; min-height: 320px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 12.5px; line-height: 1.65; padding: 16px; outline: none; resize: vertical; }
+        .prompt-area:focus { border-color: var(--accent); }
+        .prompt-meta { display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--text3); margin-top: 10px; flex-wrap: wrap; }
+        .test-answer { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; font-size: 13px; line-height: 1.65; color: var(--text2); margin-top: 12px; display: none; }
+        .test-answer.show { display: block; }
+
+        /* ── Cost bars ── */
+        .cost-row { display: grid; grid-template-columns: 200px 1fr 110px; gap: 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid #1a1a1a; }
+        .cost-row:last-child { border-bottom: none; }
+        .cost-name { font-size: 13px; color: var(--text2); }
+        .cost-track { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+        .cost-fill { height: 100%; border-radius: 5px; transition: width .6s ease; }
+        .cost-val { font-size: 13px; font-weight: 600; text-align: right; font-family: var(--mono); }
+
+        .notice { font-size: 12px; color: var(--amber); background: #d9770611; border: 1px solid #d9770633; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: none; }
+        .notice.show { display: block; }
+        .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast { position: fixed; bottom: 22px; right: 22px; background: #16a34a; color: #fff; font-size: 13px; font-weight: 500; padding: 11px 18px; border-radius: 8px; box-shadow: 0 8px 30px #00000088; opacity: 0; transform: translateY(8px); transition: all .25s; z-index: 100; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.err { background: #dc2626; }
+        @media (max-width: 900px) { .metric-grid { grid-template-columns: 1fr 1fr; } .cost-row { grid-template-columns: 120px 1fr 80px; } }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-left">
+        <span class="logo">RAG PLATFORM</span>
+        <span class="title">Admin Console</span>
+        <span class="env-pill">CONTROL PLANE</span>
+    </div>
+    <div class="topbar-right">
+        <span class="live-dot" id="live-dot"></span>
+        <input class="conn-input" id="api-key" type="password" placeholder="API key">
+        <button class="btn primary" onclick="connect()">Connect</button>
+    </div>
+</div>
+
+<div class="tab-nav">
+    <div class="tab-btn active" id="tab-projects" onclick="switchTab('projects')">📦 Projects</div>
+    <div class="tab-btn" id="tab-signals" onclick="switchTab('signals')">🏷️ Signals &amp; Tags</div>
+    <div class="tab-btn" id="tab-prompt" onclick="switchTab('prompt')">✍️ Prompt Studio</div>
+    <div class="tab-btn" id="tab-cost" onclick="switchTab('cost')">💰 Cost Center</div>
+    <div class="tab-btn" id="tab-keys" onclick="switchTab('keys')">🔑 API Keys</div>
+</div>
+
+<div class="main">
+    <div class="notice" id="offline-notice">⚠ Not connected — showing the Equinix POC tenant from cached data. Enter the API key and press Connect for live config.</div>
+
+    <!-- ════════ PROJECTS ════════ -->
+    <div class="tab-view active" id="view-projects">
+        <div class="metric-grid">
+            <div class="metric"><div class="metric-label">Projects</div><div class="metric-value" id="m-projects">1</div><div class="metric-sub">tenants on the platform</div></div>
+            <div class="metric"><div class="metric-label">Documents</div><div class="metric-value" style="color:var(--blue)" id="m-docs">1,282</div><div class="metric-sub">across all corpora</div></div>
+            <div class="metric"><div class="metric-label">Vectors</div><div class="metric-value" style="color:var(--cyan)" id="m-vectors">10,381</div><div class="metric-sub">Pinecone, all namespaces</div></div>
+            <div class="metric"><div class="metric-label">Queries / day</div><div class="metric-value" style="color:var(--green)" id="m-qpd">—</div><div class="metric-sub">last 24h, all tenants</div></div>
+        </div>
+
+        <div class="proj-grid" id="proj-grid">
+            <div class="proj-card">
+                <div class="proj-top">
+                    <span class="proj-name">equinix-poc</span>
+                    <span class="pill green">● Live</span>
+                </div>
+                <div style="font-size:12px;color:var(--text3)">Resource assistant · equinix.com · tenant #001</div>
+                <div class="proj-stats">
+                    <div class="proj-stat"><div class="proj-stat-v">1,282</div><div class="proj-stat-l">Docs</div></div>
+                    <div class="proj-stat"><div class="proj-stat-v">10,381</div><div class="proj-stat-l">Vectors</div></div>
+                    <div class="proj-stat"><div class="proj-stat-v" id="p1-profiles">55</div><div class="proj-stat-l">Profiles</div></div>
+                </div>
+                <div style="font-size:11px;color:var(--text4)">Namespaces: technical · business · media · semantic-cache · visitor-profiles</div>
+                <div style="display:flex;gap:8px;margin-top:12px">
+                    <button class="btn" onclick="switchTab('signals')">Edit signals</button>
+                    <button class="btn" onclick="switchTab('prompt')">Prompt</button>
+                    <button class="btn" onclick="switchTab('cost')">Costs</button>
+                </div>
+            </div>
+
+            <div class="proj-card new" onclick="showOnboard()">
+                <div style="font-size:30px">＋</div>
+                <div style="font-size:14px;font-weight:500">New project</div>
+                <div style="font-size:11px;text-align:center;max-width:230px">Upload a corpus — signals, taxonomy and a golden dataset are auto-drafted for review</div>
+            </div>
+        </div>
+
+        <div class="card" id="onboard-card" style="display:none;margin-top:16px">
+            <div class="card-header">
+                <div><div class="card-title">Onboard a new project</div><div class="card-sub">Corpus in → reviewed config out. Target: live in 48 hours.</div></div>
+                <button class="btn" onclick="document.getElementById('onboard-card').style.display='none'">Close</button>
+            </div>
+            <div class="card-body">
+                <table>
+                    <tr><th style="width:50px">Step</th><th>What happens</th><th style="width:120px">Owner</th><th style="width:110px">Status</th></tr>
+                    <tr><td class="mono">1</td><td>Create tenant — name, domain, plan → <span class="mono">rag-tenants</span></td><td>Operator</td><td><span class="pill violet">Wizard</span></td></tr>
+                    <tr><td class="mono">2</td><td>Upload documents → <span class="mono">s3://rag-intake/{tenant}/</span> → EventBridge triggers ingestion</td><td>Customer</td><td><span class="pill violet">Drag-drop</span></td></tr>
+                    <tr><td class="mono">3</td><td>Taxonomy extraction — GPT-4o pass drafts product, workload &amp; competitor signals with evidence</td><td>Automatic</td><td><span class="pill blue">AI</span></td></tr>
+                    <tr><td class="mono">4</td><td>Review drafted tags in Signals &amp; Tags → edit → approve</td><td>Customer</td><td><span class="pill amber">Human gate</span></td></tr>
+                    <tr><td class="mono">5</td><td>Golden dataset auto-draft (50 Q&amp;A) → curate → baseline eval run</td><td>Customer</td><td><span class="pill amber">Human gate</span></td></tr>
+                    <tr><td class="mono">6</td><td>API key issued → embed snippet → live</td><td>Operator</td><td><span class="pill green">Go</span></td></tr>
+                </table>
+                <div style="font-size:11px;color:var(--text4);margin-top:10px">Steps 1–2 ship in WS1 wk 1–2 · step 3 is the auto-config extraction (productization backlog) · this screen tracks per-tenant progress once the intake Lambda is deployed.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════ SIGNALS & TAGS ════════ -->
+    <div class="tab-view" id="view-signals">
+        <div class="card">
+            <div class="card-header">
+                <div><div class="card-title">Signal taxonomy — equinix-poc</div><div class="card-sub">These tags drive detection live. Saves write to rag-config; the API picks changes up within 5 minutes. No deploy.</div></div>
+                <button class="btn" onclick="loadConfig(true)">↻ Reload</button>
+            </div>
+            <div class="card-body" id="signals-body">
+                <div style="color:var(--text3);font-size:13px"><span class="spinner"></span> Loading config…</div>
+            </div>
+        </div>
+        <div class="dirty-bar" id="dirty-bar">
+            <span class="dirty-text" id="dirty-text">Unsaved changes</span>
+            <div style="display:flex;gap:8px">
+                <button class="btn" onclick="loadConfig(true)">Discard</button>
+                <button class="btn primary" id="save-btn" onclick="saveConfig()">Save to rag-config</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════ PROMPT STUDIO ════════ -->
+    <div class="tab-view" id="view-prompt">
+        <div class="card">
+            <div class="card-header">
+                <div><div class="card-title">Prompt registry</div><div class="card-sub">Every prompt the platform runs, versioned in rag-config. Embedding and rerank stages are model-only — nothing to edit there.</div></div>
+                <span class="pill violet mono" id="pv-pill">—</span>
+            </div>
+            <div class="card-body">
+                <div id="prompt-selector" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+                    <button class="btn" id="psel-generation" onclick="selectPrompt('generation')">✍️ Generation · GPT-4o</button>
+                    <button class="btn" id="psel-intent" onclick="selectPrompt('intent')">🎯 Intent · GPT-4o-mini</button>
+                    <button class="btn" id="psel-profiles" onclick="selectPrompt('profiles')">🧠 Profiles · GPT-4o-mini</button>
+                    <span style="font-size:11px;color:var(--text4);align-self:center">· embed &amp; rerank: no prompt</span>
+                </div>
+                <div style="font-size:12px;color:var(--text3);margin-bottom:8px" id="prompt-note"></div>
+                <textarea class="prompt-area" id="prompt-text" spellcheck="false" oninput="promptDirty()">Loading…</textarea>
+                <div class="prompt-meta">
+                    <span id="prompt-chars">— chars</span>
+                    <span>Cache impact: <strong style="color:var(--amber)">saving clears L1 + semantic cache</strong></span>
+                    <span id="prompt-status"></span>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+                    <button class="btn primary" id="prompt-save" onclick="savePrompt()" disabled>Save &amp; bump version</button>
+                    <button class="btn" onclick="selectPrompt(_pid)">Discard changes</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div><div class="card-title">Test panel</div><div class="card-sub">Runs a real query through the live pipeline — intent, workloads and answer come back from the API.</div></div>
+            </div>
+            <div class="card-body">
+                <div style="display:flex;gap:8px">
+                    <input class="conn-input" id="test-query" style="flex:1;width:auto" placeholder="e.g. What port speeds does Equinix Fabric support?">
+                    <button class="btn primary" onclick="runTest()">Run test</button>
+                </div>
+                <div class="test-answer" id="test-answer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════ COST CENTER ════════ -->
+    <div class="tab-view" id="view-cost">
+        <div class="metric-grid">
+            <div class="metric"><div class="metric-label">Est. cost today</div><div class="metric-value" style="color:var(--green)" id="c-today">—</div><div class="metric-sub" id="c-today-sub">from query volume</div></div>
+            <div class="metric"><div class="metric-label">Est. monthly run-rate</div><div class="metric-value" id="c-month">—</div><div class="metric-sub">at current volume</div></div>
+            <div class="metric"><div class="metric-label">Avg cost / query</div><div class="metric-value" style="color:var(--blue)" id="c-per-q">—</div><div class="metric-sub">all components, cache-adjusted</div></div>
+            <div class="metric"><div class="metric-label">Cache savings</div><div class="metric-value" style="color:var(--cyan)" id="c-cache-save">—</div><div class="metric-sub">generation calls avoided</div></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><div><div class="card-title">Cost by component — equinix-poc</div><div class="card-sub">Estimates from live query counts × published model pricing. Exact metering ships with the productization billing work.</div></div></div>
+            <div class="card-body" id="cost-rows">
+                <div style="color:var(--text3);font-size:13px">Connect to compute from live volume.</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><div><div class="card-title">Cost per tenant</div><div class="card-sub">tenant_id tagging on every model call — the billing foundation</div></div></div>
+            <div class="card-body" style="padding:0">
+                <table>
+                    <tr><th>Tenant</th><th>Plan</th><th>Queries (30d)</th><th>Est. cost (30d)</th><th>Cost / query</th></tr>
+                    <tr id="tenant-cost-row"><td class="mono">equinix-poc</td><td><span class="pill violet">Internal</span></td><td id="t-q30">—</td><td id="t-c30">—</td><td id="t-cpq">—</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════ API KEYS ════════ -->
+    <div class="tab-view" id="view-keys">
+        <div class="card">
+            <div class="card-header">
+                <div><div class="card-title">API keys</div><div class="card-sub">Per-key usage plans enforce tenant rate limits at API Gateway. Keys are shown once at creation.</div></div>
+                <button class="btn primary" onclick="createKey()">+ Issue key</button>
+            </div>
+            <div class="card-body" style="padding:0">
+                <table id="keys-table">
+                    <tr><th>Name</th><th>Key</th><th>Tenant</th><th>Created</th><th>Status</th><th style="width:90px"></th></tr>
+                    <tr><td>production</td><td class="mono">eqx-••••••••••••3f7a</td><td class="mono">equinix-poc</td><td>May 2026</td><td><span class="pill green">Active</span></td><td><button class="btn danger" onclick="toast('Revoke needs the /admin/keys endpoint — patch below','err')">Revoke</button></td></tr>
+                    <tr><td>hf-space-demo</td><td class="mono">eqx-••••••••••••91c2</td><td class="mono">equinix-poc</td><td>May 2026</td><td><span class="pill green">Active</span></td><td><button class="btn danger" onclick="toast('Revoke needs the /admin/keys endpoint — patch below','err')">Revoke</button></td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div><div class="card-title">Usage by key (24h)</div></div></div>
+            <div class="card-body" id="key-usage">
+                <div class="cost-row"><div class="cost-name mono">production</div><div class="cost-track"><div class="cost-fill" style="width:78%;background:var(--accent)"></div></div><div class="cost-val" id="ku-1">—</div></div>
+                <div class="cost-row"><div class="cost-name mono">hf-space-demo</div><div class="cost-track"><div class="cost-fill" style="width:22%;background:var(--blue)"></div></div><div class="cost-val" id="ku-2">—</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    /* ════════════════════════════════════════════════════════════
+       State
+    ════════════════════════════════════════════════════════════ */
+    const API_URL = 'https://lxhxqqh3r8.execute-api.us-east-1.amazonaws.com';
+    let _key = '';
+    let _config = {};        // loaded rag-config: {config_key: data}
+    let _dirtyKeys = new Set();
+    let _promptOriginal = '';
+
+    /* Badge colours per config key — chips inherit production identity */
+    const KEY_STYLE = {
+        competitor_signals:  { icon:'⚠️', c:'#f87171', bg:'#dc262615', desc:'Competitor names flagged in queries — feeds the weekly sales-enablement brief. Value = canonical competitor name.' },
+        product_signals:     { icon:'📦', c:'#60a5fa', bg:'#185FA515', desc:'Keyword → product mapping for affinity scoring. Chip shows keyword → product.' },
+        workload_signals:    { icon:'🤖', c:'#93c5fd', bg:'#0c234055', desc:'Keyword → workload vertical (AI, SD-WAN, Multicloud…). Drives memory-panel tags.' },
+        commercial_keywords: { icon:'💰', c:'#4ade80', bg:'#16a34a15', desc:'Buying-intent vocabulary — these fire the commercial CTA and SOLID_LEAD scoring.' },
+        equinix_products:    { icon:'🏷️', c:'#c4b5fd', bg:'#7c5cfc15', desc:'Canonical product list passed to the intent model. Detected products must match this list.' },
+        equinix_use_cases:   { icon:'🧭', c:'#fbbf24', bg:'#d9770615', desc:'Solution taxonomy for use-case detection.' },
+    };
+    const KEY_ORDER = ['competitor_signals','product_signals','workload_signals','commercial_keywords','equinix_products','equinix_use_cases'];
+
+    /* ════════════════════════════════════════════════════════════
+       Plumbing
+    ════════════════════════════════════════════════════════════ */
+    function $(id){ return document.getElementById(id); }
+    function toast(msg, kind){ const t=$('toast'); t.textContent=msg; t.className='toast show'+(kind==='err'?' err':''); setTimeout(()=>t.classList.remove('show'), 3200); }
+    function switchTab(id){
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.tab-view').forEach(v=>v.classList.remove('active'));
+        $('tab-'+id).classList.add('active'); $('view-'+id).classList.add('active');
+        if(id==='signals' && !Object.keys(_config).length) loadConfig();
+        if(id==='prompt') loadPrompts();
+        if(id==='cost') loadCosts();
+    }
+    async function api(path, opts){
+        const r = await fetch(API_URL + path, Object.assign({ headers: {'X-API-Key': _key, 'Content-Type':'application/json'} }, opts||{}));
+        if(!r.ok) throw new Error(r.status + ' ' + (await r.text()).slice(0,140));
+        return r.json();
+    }
+    async function connect(){
+        _key = $('api-key').value.trim();
+        if(!_key){ toast('Enter the API key first','err'); return; }
+        const notice = $('offline-notice');
+        notice.classList.add('show');
+        notice.innerHTML = '<span class="spinner"></span> Testing connection…';
+
+        // Step 1 — can we reach the API at all? (health = no auth surprises)
+        try {
+            const h = await fetch(API_URL + '/api/v1/health');
+            if(!h.ok) throw Object.assign(new Error('health ' + h.status), {step:'health', status:h.status});
+        } catch(e) {
+            if(e instanceof TypeError){
+                notice.innerHTML = '🚫 <strong>Blocked by the browser (CORS)</strong> — the API does not allow this hf.space origin. Run the CORS patch on EC2 (add CORSMiddleware with this Space URL in allow_origins), restart rag-api, then reconnect. Details in DevTools console (F12).';
+            } else {
+                notice.innerHTML = '🚫 API unreachable — ' + esc(e.message) + '. Check API Gateway URL and that rag-api is running.';
+            }
+            $('live-dot').classList.remove('on');
+            return;
+        }
+
+        // Step 2 — do the admin endpoints exist, and does the key work?
+        try {
+            const r = await fetch(API_URL + '/api/v1/admin/config', { headers: {'X-API-Key': _key} });
+            if(r.status === 404){
+                notice.innerHTML = '⚙️ <strong>API reachable, but /admin/config is not deployed</strong> — run <span class="mono">deploy_admin_endpoints.sh</span> on EC2, then reconnect. Console stays in read-only cached mode until then.';
+                $('live-dot').classList.remove('on');
+                return;
+            }
+            if(r.status === 401 || r.status === 403){
+                notice.innerHTML = '🔑 <strong>API key rejected ('+r.status+')</strong> — check the key and try again.';
+                $('live-dot').classList.remove('on');
+                return;
+            }
+            if(!r.ok) throw new Error('admin/config ' + r.status);
+            const d = await r.json();
+            _config = d.config || {};
+        } catch(e) {
+            notice.innerHTML = '🚫 Admin endpoint error — ' + esc(e.message);
+            $('live-dot').classList.remove('on');
+            return;
+        }
+
+        // Connected for real
+        notice.classList.remove('show');
+        $('live-dot').classList.add('on');
+        _dirtyKeys.clear(); updateDirtyBar(); renderSignals();
+        loadStats();
+        toast('Connected — live config loaded');
+    }
+    function showOnboard(){ $('onboard-card').style.display='block'; $('onboard-card').scrollIntoView({behavior:'smooth'}); }
+
+    /* ════════════════════════════════════════════════════════════
+       Projects metrics
+    ════════════════════════════════════════════════════════════ */
+    async function loadStats(){
+        try {
+            const d = await api('/api/v1/analytics/stats');
+            const hourly = d.hourly_volume || [];
+            const today = hourly.slice(-24).reduce((a,b)=>a + (typeof b === 'number' ? b : (Number(b && b.count) || 0)), 0);
+            const shown = today || d.queries_today || d.total_queries || 0;
+            $('m-qpd').textContent = shown ? shown.toLocaleString() : '—';
+            window._qToday = today || d.queries_today || 0; window._qTotal = d.total_queries || 0;
+            window._cacheRate = d.cache_hit_rate || 0;
+        } catch(e){ /* analytics endpoint optional here */ }
+        try {
+            const p = await api('/api/v1/analytics/visitor-profiles');
+            $('p1-profiles').textContent = p.profile_count ?? '55';
+        } catch(e){}
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       Signals & Tags — the chip editor
+    ════════════════════════════════════════════════════════════ */
+    async function loadConfig(force){
+        const body = $('signals-body');
+        body.innerHTML = '<div style="color:var(--text3);font-size:13px"><span class="spinner"></span> Loading config…</div>';
+        _dirtyKeys.clear(); updateDirtyBar();
+        try {
+            if(!_key) throw new Error('not connected');
+            const d = await api('/api/v1/admin/config');
+            _config = d.config || {};
+        } catch(e) {
+            // Fallback: seed with the known production config so the editor is usable offline
+            if(!force) $('offline-notice').classList.add('show');
+            _config = _config && Object.keys(_config).length && !force ? _config : {
+                competitor_signals: ['Megaport','Digital Realty','Zayo','CoreSite','Lumen','CyrusOne','QTS','Vantage','NTT GDC','Flexential'],
+                product_signals: {'equinix fabric':'Equinix Fabric','fabric':'Equinix Fabric','equinix metal':'Equinix Metal','bare metal':'Equinix Metal','metal':'Equinix Metal','network edge':'Network Edge','xscale':'xScale','ibx':'IBX','fcr':'Fabric Cloud Router','fabric cloud router':'Fabric Cloud Router','smartkey':'SmartKey','precision time':'Precision Time','internet exchange':'Internet Exchange','equinix connect':'Equinix Connect','x-scale':'xScale'},
+                workload_signals: {'distributed ai':'Distributed AI','ai workload':'Distributed AI','ai infrastructure':'Distributed AI','gpu cluster':'Distributed AI','machine learning':'AI & Machine Learning','gpu':'AI & Machine Learning','llm':'AI & Machine Learning','generative ai':'AI & Machine Learning','sd-wan':'SD-WAN','sd wan':'SD-WAN','sdwan':'SD-WAN','hybrid multicloud':'Hybrid Multicloud','multicloud':'Hybrid Multicloud','financial services':'Financial Services','trading':'Financial Services','colocation':'Colocation','colo':'Colocation','interconnection':'Interconnection','cross-connect':'Interconnection','bgp':'Network Modernization','mpls':'Network Modernization'},
+                commercial_keywords: ['pricing','price','cost','quote','contract','deployment','enterprise agreement','sla','procurement','purchase','buy','billing','subscription','trial','pilot','poc','how much','per month','per year','annual','discount','volume'],
+                equinix_products: ['Equinix Fabric','Equinix Fabric Cloud Router','Equinix Metal','Equinix Precision Time','Internet Access','Managed Services','Network Edge','Platform Equinix','xScale','IBX','Internet Exchange','SmartKey','Equinix Connect'],
+                equinix_use_cases: ['application-exchange','application-optimization','cloud-adjacency','colocation','digital-transformation','distributed-ai','distributed-data','distributed-security','edge-computing','edge-infrastructure','high-performance-data-center','hybrid-multicloud-networking','ioa-network-architecture','interconnection','network-optimization','network-modernization','sustainability'],
+            };
+        }
+        renderSignals();
+    }
+
+    function renderSignals(){
+        const body = $('signals-body');
+        body.innerHTML = '';
+        KEY_ORDER.forEach(key => {
+            if(!(key in _config)) return;
+            const st = KEY_STYLE[key];
+            const data = _config[key];
+            const isMap = !Array.isArray(data);
+            const count = isMap ? Object.keys(data).length : data.length;
+
+            const sec = document.createElement('div');
+            sec.className = 'sig-section';
+            sec.innerHTML = `
+      <div class="sig-head">
+        <div class="sig-name">${st.icon} <span>${key}</span> <span class="sig-count">${count} ${isMap?'mappings':'tags'}${_dirtyKeys.has(key)?' · <span style="color:var(--amber)">edited</span>':''}</span></div>
+      </div>
+      <div class="sig-desc">${st.desc}</div>
+      <div class="chip-box" id="box-${key}"></div>`;
+            body.appendChild(sec);
+
+            const box = sec.querySelector('.chip-box');
+            if(isMap){
+                Object.entries(data).forEach(([k,v]) => box.appendChild(chip(key, k, v, st)));
+            } else {
+                data.forEach(v => box.appendChild(chip(key, v, null, st)));
+            }
+            // add-input
+            const add = document.createElement('span');
+            add.className = 'chip-add';
+            add.innerHTML = `<input placeholder="${isMap ? 'keyword=Label ⏎' : 'add tag ⏎'}" onkeydown="addChip(event,'${key}',${isMap})">`;
+            box.appendChild(add);
+        });
+    }
+
+    function chip(key, k, v, st){
+        const el = document.createElement('span');
+        el.className = 'chip';
+        el.style.color = st.c; el.style.background = st.bg; el.style.borderColor = st.c + '44';
+        el.innerHTML = v !== null
+            ? `${esc(k)} <span class="map">→ ${esc(v)}</span> <span class="x" onclick="removeChip('${key}','${escAttr(k)}')">×</span>`
+            : `${esc(k)} <span class="x" onclick="removeChip('${key}','${escAttr(k)}')">×</span>`;
+        return el;
+    }
+    function esc(s){ return String(s).replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+    function escAttr(s){ return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+    function addChip(ev, key, isMap){
+        if(ev.key !== 'Enter') return;
+        const val = ev.target.value.trim();
+        if(!val) return;
+        if(isMap){
+            const m = val.split('=');
+            if(m.length !== 2 || !m[0].trim() || !m[1].trim()){ toast('Use keyword=Label format','err'); return; }
+            _config[key][m[0].trim().toLowerCase()] = m[1].trim();
+        } else {
+            if(_config[key].includes(val)){ toast('Already in the list','err'); return; }
+            _config[key].push(val);
+        }
+        _dirtyKeys.add(key); updateDirtyBar(); renderSignals();
+        // refocus the same input
+        setTimeout(()=>{ const b=$('box-'+key); if(b){ const i=b.querySelector('input'); if(i) i.focus(); } }, 30);
+    }
+    function removeChip(key, k){
+        if(Array.isArray(_config[key])) _config[key] = _config[key].filter(x => x !== k);
+        else delete _config[key][k];
+        _dirtyKeys.add(key); updateDirtyBar(); renderSignals();
+    }
+    function updateDirtyBar(){
+        const bar = $('dirty-bar');
+        if(_dirtyKeys.size){ bar.classList.add('show'); $('dirty-text').textContent = `Unsaved changes in: ${[..._dirtyKeys].join(', ')}`; }
+        else bar.classList.remove('show');
+    }
+    async function saveConfig(){
+        if(!_key){ toast('Connect first — changes are local only','err'); return; }
+        const btn = $('save-btn'); btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+            for(const key of _dirtyKeys){
+                await api('/api/v1/admin/config/' + key, { method:'PUT', body: JSON.stringify({ data: _config[key] }) });
+            }
+            toast(`Saved ${_dirtyKeys.size} config key(s) — live within 5 min`);
+            _dirtyKeys.clear(); updateDirtyBar(); renderSignals();
+        } catch(e){
+            toast('Save failed: ' + e.message + ' — deploy the /admin/config endpoint (patch in chat)', 'err');
+        }
+        btn.disabled = false; btn.textContent = 'Save to rag-config';
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       Prompt studio — registry of 3 prompts
+    ════════════════════════════════════════════════════════════ */
+    let _pid = 'generation';
+    const PROMPT_LABELS = { generation: '✍️ Generation · GPT-4o', intent: '🎯 Intent · GPT-4o-mini', profiles: '🧠 Profiles · GPT-4o-mini' };
+
+    async function loadPrompts(){
+        if(!_key){ $('prompt-text').value = 'Connect first — prompts are fetched live from the registry on EC2.'; return; }
+        try {
+            const d = await api('/api/v1/admin/prompts');
+            (d.prompts || []).forEach(p => {
+                const btn = $('psel-' + p.id);
+                if(btn) btn.innerHTML = PROMPT_LABELS[p.id] +
+                    (p.source === 'registry'
+                        ? ` <span class="pill violet mono" style="margin-left:4px">v${p.version}</span>`
+                        : ` <span class="pill amber" style="margin-left:4px">code</span>`);
+            });
+            selectPrompt(_pid);
+        } catch(e){
+            if(String(e.message).startsWith('404')){
+                $('prompt-note').innerHTML = '⚙️ <strong>/admin/prompts not deployed</strong> — run <span class="mono">deploy_prompt_registry.sh</span> on EC2 to fetch the live prompts here. Generation-only legacy mode below.';
+                try {
+                    const d = await api('/api/v1/admin/prompt');
+                    $('prompt-text').value = d.prompt || '';
+                    $('pv-pill').textContent = 'pv=' + (d.prompt_version ?? '?');
+                    _promptOriginal = $('prompt-text').value; promptDirty();
+                } catch(e2){ $('prompt-text').value = 'Legacy endpoint also unavailable: ' + e2.message; }
+            } else {
+                $('prompt-note').textContent = 'Failed to load registry: ' + e.message;
+            }
+        }
+    }
+
+    async function selectPrompt(pid){
+        _pid = pid;
+        ['generation','intent','profiles'].forEach(p => {
+            const b = $('psel-' + p);
+            if(b){ b.style.borderColor = p === pid ? 'var(--accent)' : ''; b.style.color = p === pid ? 'var(--accent)' : ''; }
+        });
+        const ta = $('prompt-text');
+        ta.value = 'Loading prompt#' + pid + '…';
+        try {
+            const d = await api('/api/v1/admin/prompts/' + pid);
+            ta.value = d.prompt || '';
+            $('pv-pill').textContent = pid + ' · v' + d.version;
+            $('prompt-note').innerHTML = d.source === 'code-fallback'
+                ? '⚠️ Running from the code literal — save once to take registry control.'
+                : (pid === 'intent' ? 'Keep <span class="mono">{products}</span> and <span class="mono">{use_cases}</span> placeholders intact.'
+                    : pid === 'generation' ? 'Saving bumps the version — semantic + memory caches auto-invalidate on next query.'
+                        : 'Applies on the next consolidation run (timer currently paused — run manually before demos).');
+        } catch(e){ ta.value = ''; $('prompt-note').textContent = 'Load failed: ' + e.message; }
+        _promptOriginal = ta.value;
+        $('prompt-chars').textContent = ta.value.length + ' chars';
+        $('prompt-save').disabled = true;
+        $('prompt-status').textContent = '';
+    }
+
+    function promptDirty(){
+        const ta = $('prompt-text');
+        $('prompt-chars').textContent = ta.value.length + ' chars';
+        const dirty = ta.value !== _promptOriginal;
+        $('prompt-save').disabled = !dirty;
+        $('prompt-status').innerHTML = dirty ? '<span style="color:var(--amber)">● staged — not live</span>' : '';
+    }
+
+    async function savePrompt(){
+        if(!_key){ toast('Connect first','err'); return; }
+        const btn = $('prompt-save'); btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+            const d = await api('/api/v1/admin/prompts/' + _pid, { method:'PUT', body: JSON.stringify({ prompt: $('prompt-text').value }) });
+            $('pv-pill').textContent = _pid + ' · v' + d.version;
+            _promptOriginal = $('prompt-text').value;
+            promptDirty();
+            toast('prompt#' + _pid + ' → v' + d.version + ' · ' + (d.note || 'live'));
+            loadPrompts();
+        } catch(e){
+            toast('Save failed: ' + e.message, 'err');
+        }
+        btn.textContent = 'Save & bump version';
+    }
+    async function runTest(){
+        const q = $('test-query').value.trim();
+        if(!q){ toast('Type a test query','err'); return; }
+        if(!_key){ toast('Connect first','err'); return; }
+        const box = $('test-answer');
+        box.classList.add('show');
+        box.innerHTML = '<span class="spinner"></span> Running through the live pipeline…';
+        try {
+            const d = await api('/api/v1/search', { method:'POST', body: JSON.stringify({ query: q, visitor_id: 'v_prompt_studio_test' }) });
+            box.innerHTML =
+                `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <span class="pill blue">intent: ${esc(d.intent||'—')}</span>
+        <span class="pill violet">products: ${esc((d.detected_products||[]).join(', ')||'—')}</span>
+        <span class="pill amber">workloads: ${esc((d.detected_workloads||[]).join(', ')||'—')}</span>
+        <span class="pill ${d.cached?'green':'red'}">${d.cached?'cache hit':'fresh generation'}</span>
+      </div>
+      <div style="white-space:pre-wrap">${esc(d.answer||'')}</div>`;
+        } catch(e){ box.innerHTML = '<span style="color:var(--red)">Test failed: '+esc(e.message)+'</span>'; }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       Cost center — estimates from live volume × model pricing
+    ════════════════════════════════════════════════════════════ */
+    const PRICES = {
+        gen:    { name:'GPT-4o · answer generation',      perQ: 0.012, color:'var(--accent)' },
+        intent: { name:'GPT-4o-mini · intent detection',  perQ: 0.0009, color:'var(--blue)' },
+        embed:  { name:'text-embedding-3 · query embed',  perQ: 0.00002, color:'var(--cyan)' },
+        rerank: { name:'Cohere · rerank-v3',              perQ: 0.002, color:'var(--amber)' },
+        prof:   { name:'GPT-4o-mini · nightly profiles',  perDay: 0.35, color:'var(--green)' },
+    };
+    async function loadCosts(){
+        if(window._qToday === undefined) await loadStats();
+        const qDay = window._qToday || 207;          // fall back to known volume
+        const cacheRate = (window._cacheRate || 30) / 100;
+        const genQ = qDay * (1 - cacheRate);          // generation only on cache misses
+
+        const costs = {
+            gen:    genQ * PRICES.gen.perQ,
+            intent: qDay * PRICES.intent.perQ,
+            embed:  qDay * PRICES.embed.perQ,
+            rerank: genQ * PRICES.rerank.perQ,
+            prof:   PRICES.prof.perDay,
+        };
+        const total = Object.values(costs).reduce((a,b)=>a+b,0);
+        const saved = qDay * cacheRate * (PRICES.gen.perQ + PRICES.rerank.perQ);
+
+        $('c-today').textContent = '$' + total.toFixed(2);
+        $('c-today-sub').textContent = qDay + ' queries · ' + Math.round(cacheRate*100) + '% cache hits';
+        $('c-month').textContent = '$' + (total*30).toFixed(0);
+        $('c-per-q').textContent = '$' + (total/Math.max(qDay,1)).toFixed(4);
+        $('c-cache-save').textContent = '$' + (saved*30).toFixed(0) + '/mo';
+
+        const max = Math.max(...Object.values(costs));
+        $('cost-rows').innerHTML = Object.entries(costs).map(([k,v]) =>
+            `<div class="cost-row">
+       <div class="cost-name">${PRICES[k].name}</div>
+       <div class="cost-track"><div class="cost-fill" style="width:${Math.max(3,(v/max*100)).toFixed(0)}%;background:${PRICES[k].color}"></div></div>
+       <div class="cost-val">$${v.toFixed(3)}/day</div>
+     </div>`).join('');
+
+        $('t-q30').textContent = (qDay*30).toLocaleString();
+        $('t-c30').textContent = '$' + (total*30).toFixed(0);
+        $('t-cpq').textContent = '$' + (total/Math.max(qDay,1)).toFixed(4);
+        $('ku-1').textContent = Math.round(qDay*.78) + ' req';
+        $('ku-2').textContent = Math.round(qDay*.22) + ' req';
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       API keys
+    ════════════════════════════════════════════════════════════ */
+    function createKey(){
+        toast('Key issuance needs the /admin/keys endpoint — EC2 patch in chat', 'err');
+    }
+
+    /* init */
+    $('offline-notice').classList.add('show');
+    loadConfig();
+</script>
+</body>
+</html>

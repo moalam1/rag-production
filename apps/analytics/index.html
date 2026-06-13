@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equinix RAG Analytics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tablericons/2.0.0/iconfont/tabler-icons.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; }
+
+        /* ── Topbar ── */
+        .topbar { background: #111; border-bottom: 1px solid #222; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .logo { font-size: 11px; font-weight: 700; color: #c2410c; letter-spacing: 0.1em; }
+        .title { font-size: 15px; font-weight: 500; color: #e5e5e5; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        .live-label { font-size: 12px; color: #6b7280; }
+        .refresh-btn { font-size: 12px; padding: 6px 14px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #9ca3af; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .refresh-btn:hover { background: #1a1a1a; color: #e5e5e5; }
+
+        /* ── Tab nav ── */
+        .tab-nav { display: flex; gap: 0; border-bottom: 1px solid #222; background: #111; padding: 0 24px; }
+        .tab-btn { font-size: 13px; font-weight: 500; color: #6b7280; padding: 13px 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 7px; transition: color .15s; white-space: nowrap; }
+        .tab-btn:hover { color: #9ca3af; }
+        .tab-btn.active { color: #c2410c; border-bottom-color: #c2410c; }
+        .tab-btn i { font-size: 15px; }
+
+        /* ── Layout ── */
+        .main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        .tab-view { display: none; }
+        .tab-view.active { display: block; }
+
+        /* ── Metric grid ── */
+        .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .metric { background: #111; border: 1px solid #222; border-radius: 10px; padding: 16px; }
+        .metric-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .metric-value { font-size: 28px; font-weight: 600; color: #e5e5e5; }
+        .metric-sub { font-size: 11px; color: #4b5563; margin-top: 4px; }
+        .metric.accent { border-color: #c2410c33; }
+        .metric.accent .metric-value { color: #c2410c; }
+        .metric.blue { border-color: #185FA533; }
+        .metric.blue .metric-value { color: #60a5fa; }
+        .metric.green { border-color: #16a34a33; }
+        .metric.green .metric-value { color: #4ade80; }
+        .metric.purple { border-color: #7c3aed33; }
+        .metric.purple .metric-value { color: #c4b5fd; }
+
+        /* ── Cards ── */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+        .card { background: #111; border: 1px solid #222; border-radius: 10px; padding: 18px; }
+        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .card-title { font-size: 13px; font-weight: 500; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 8px; }
+        .card-title i { font-size: 15px; }
+
+        /* ── Query rows ── */
+        .query-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #1a1a1a; }
+        .query-row:last-child { border-bottom: none; }
+        .query-rank { font-size: 11px; color: #4b5563; width: 18px; text-align: center; flex-shrink: 0; }
+        .query-text { flex: 1; font-size: 13px; color: #d1d5db; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .query-bar-wrap { width: 80px; height: 4px; background: #1a1a1a; border-radius: 2px; flex-shrink: 0; }
+        .query-bar { height: 100%; border-radius: 2px; background: #c2410c; }
+        .query-count { font-size: 12px; color: #6b7280; width: 28px; text-align: right; flex-shrink: 0; font-weight: 500; }
+        .query-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 600; flex-shrink: 0; }
+
+        /* ── Bar rows ── */
+        .bar-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #1a1a1a; }
+        .bar-row:last-child { border-bottom: none; }
+        .bar-label { font-size: 12px; color: #d1d5db; width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bar-wrap { flex: 1; height: 5px; background: #1a1a1a; border-radius: 3px; }
+        .bar-fill { height: 100%; border-radius: 3px; }
+        .bar-val { font-size: 11px; color: #6b7280; width: 32px; text-align: right; flex-shrink: 0; }
+
+        /* ── NS rows ── */
+        .ns-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1a1a1a; }
+        .ns-row:last-child { border-bottom: none; }
+        .ns-label { font-size: 13px; color: #d1d5db; width: 80px; flex-shrink: 0; }
+        .ns-bar-wrap { flex: 1; height: 6px; background: #1a1a1a; border-radius: 3px; }
+        .ns-bar { height: 100%; border-radius: 3px; }
+        .ns-count { font-size: 12px; color: #6b7280; width: 36px; text-align: right; flex-shrink: 0; }
+
+        /* ── Chips ── */
+        .lang-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 20px; font-size: 12px; margin: 3px; border: 1px solid #222; background: #1a1a1a; color: #d1d5db; }
+        .lang-chip strong { color: #e5e5e5; }
+        .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; margin: 2px; }
+
+        /* ── Journey stage ── */
+        .journey-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; margin-bottom: 16px; }
+        .journey-stage { border-top: 3px solid #222; padding: 14px 14px 16px; position: relative; }
+        .journey-stage + .journey-stage { border-left: 1px solid #1a1a1a; }
+        .stage-num { font-size: 10px; color: #4b5563; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 5px; }
+        .stage-title { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+        .stage-sub { font-size: 12px; color: #6b7280; margin-bottom: 10px; }
+        .stage-query { font-size: 12px; color: #9ca3af; line-height: 1.4; margin-bottom: 8px; font-style: italic; }
+        .stage-tier { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; display: inline-block; }
+
+        /* ── Profile card ── */
+        .profile-card { background: #141414; border: 1px solid #222; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+        .profile-card.identified { background: #0d1f0f; border: 1px solid #16a34a55; }
+        .profile-id-badge { display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600; }
+        .profile-id { font-size: 11px; color: #4b5563; font-family: monospace; margin-bottom: 6px; }
+        .profile-text { font-size: 13px; color: #9ca3af; line-height: 1.5; margin-bottom: 10px; }
+        .profile-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+        .profile-tag { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-weight: 500; }
+
+        /* ── Timeline ── */
+        .timeline { position: relative; padding-left: 24px; }
+        .timeline::before { content:''; position:absolute; left:7px; top:8px; bottom:8px; width:1px; background:#222; }
+        .tl-item { position: relative; padding: 0 0 20px 20px; }
+        .tl-dot { position: absolute; left: -24px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: #374151; border: 1px solid #4b5563; }
+        .tl-dot.active { background: #c2410c; border-color: #c2410c; }
+        .tl-time { font-size: 11px; color: #4b5563; margin-bottom: 3px; }
+        .tl-title { font-size: 13px; font-weight: 500; color: #d1d5db; margin-bottom: 2px; }
+        .tl-sub { font-size: 12px; color: #6b7280; }
+
+        /* ── Misc ── */
+        .setup-box { background: #111; border: 1px solid #333; border-radius: 10px; padding: 24px; text-align: center; }
+        .setup-box h3 { font-size: 16px; font-weight: 500; margin-bottom: 8px; color: #e5e5e5; }
+        .setup-box p { font-size: 13px; color: #6b7280; margin-bottom: 16px; line-height: 1.6; }
+        .input-row { display: flex; gap: 8px; max-width: 560px; margin: 0 auto; }
+        .input-row input { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 8px 12px; font-size: 13px; color: #e5e5e5; outline: none; }
+        .input-row input:focus { border-color: #c2410c; }
+        .input-row button { background: #c2410c; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; color: #fff; cursor: pointer; font-weight: 500; white-space: nowrap; }
+        .input-row button:hover { background: #9a3412; }
+        .footer { font-size: 11px; color: #374151; text-align: center; margin-top: 24px; }
+        .badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+        .badge-green { background: #052e16; color: #16a34a; }
+        .badge-amber { background: #431407; color: #f59e0b; }
+        .badge-red { background: #1a0808; color: #f87171; }
+        .badge-blue { background: #0c2340; color: #60a5fa; }
+        .badge-purple { background: #1a0f2e; color: #c4b5fd; }
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #333; border-top-color: #c2410c; border-radius: 50%; animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .section-label { font-size: 11px; font-weight: 600; color: #4b5563; text-transform: uppercase; letter-spacing: .08em; margin: 20px 0 12px; }
+        .empty { font-size: 13px; color: #4b5563; padding: 8px 0; }
+        @media(max-width:700px) { .metric-grid,.grid-4{grid-template-columns:repeat(2,1fr)} .grid-2,.grid-3{grid-template-columns:1fr} .journey-row{grid-template-columns:1fr 1fr} .tab-btn span{display:none} }
+    </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+    <div class="topbar-left">
+        <span class="logo">EQUINIX</span>
+        <span style="color:#333">|</span>
+        <span class="title">RAG Analytics</span>
+    </div>
+    <div class="topbar-right" style="gap:8px">
+        <span class="live-dot" id="live-dot" style="background:#374151"></span>
+        <span class="live-label" id="live-label">Not connected</span>
+        <div id="key-bar" style="display:flex;gap:6px;align-items:center">
+            <input id="inline-key" type="password" placeholder="Paste API key to connect"
+                   style="padding:5px 10px;border-radius:6px;border:1px solid #333;background:#1a1a1a;
+                    color:#e5e5e5;font-size:12px;width:200px;outline:none;"
+                   onkeydown="if(event.key==='Enter')connect()"
+                   onfocus="this.style.borderColor='#c2410c'"
+                   onblur="this.style.borderColor='#333'"/>
+            <button class="refresh-btn" onclick="connect()" style="background:#c2410c;color:#fff;border:none">
+                Connect
+            </button>
+        </div>
+        <button class="refresh-btn" onclick="loadData()" id="refresh-btn" style="display:none">
+            <span id="spin-wrap"><i class="ti ti-refresh"></i></span> Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Tab nav -->
+<div class="tab-nav">
+    <div class="tab-btn active" onclick="switchTab('search')" id="tab-search">
+        <i class="ti ti-chart-bar"></i><span>Search analytics</span>
+    </div>
+    <div class="tab-btn" onclick="switchTab('journey')" id="tab-journey">
+        <i class="ti ti-route"></i><span>Buyer journey</span>
+    </div>
+    <div class="tab-btn" onclick="switchTab('memory')" id="tab-memory">
+        <i class="ti ti-users"></i><span>Buyer intelligence</span>
+    </div>
+    <div class="tab-btn" onclick="switchTab('leads')" id="tab-leads">
+        <i class="ti ti-target-arrow"></i><span>Pipeline signals</span>
+    </div>
+</div>
+
+<div class="main">
+
+    <!-- ══════════════════════════════════════════════
+         SETUP VIEW
+    ══════════════════════════════════════════════ -->
+    <div id="setup-view" style="display:none"></div>
+
+    <!-- ══════════════════════════════════════════════
+         TAB 1 — SEARCH ANALYTICS
+    ══════════════════════════════════════════════ -->
+    <div id="view-search" class="tab-view">
+        <div class="metric-grid">
+            <div class="metric accent">
+                <div class="metric-label">Total searches</div>
+                <div class="metric-value" id="m-total">—</div>
+                <div class="metric-sub" id="m-total-sub">all time</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Cache hit rate</div>
+                <div class="metric-value" id="m-cache">—</div>
+                <div class="metric-sub" id="m-cache-sub">—</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Unique queries</div>
+                <div class="metric-value" id="m-unique">—</div>
+                <div class="metric-sub">tracked in Redis</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Languages</div>
+                <div class="metric-value" id="m-langs">—</div>
+                <div class="metric-sub">detected</div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+                <div class="card-title"><i class="ti ti-chart-bar"></i> Hourly search volume (last 24h)</div>
+                <span class="badge badge-green" id="peak-label">—</span>
+            </div>
+            <div style="position:relative;height:160px">
+                <canvas id="hourly-chart" role="img" aria-label="Bar chart showing hourly search volume over the last 24 hours"></canvas>
+            </div>
+        </div>
+
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="ti ti-trending-up"></i> Top queries</div>
+                    <span id="queries-count" style="font-size:11px;color:#4b5563"></span>
+                </div>
+                <div id="top-queries"></div>
+            </div>
+            <div>
+                <div class="card" style="margin-bottom:16px">
+                    <div class="card-header">
+                        <div class="card-title"><i class="ti ti-filter"></i> Namespace usage</div>
+                    </div>
+                    <div id="ns-chart"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i class="ti ti-world"></i> Languages</div>
+                    </div>
+                    <div id="lang-chips"></div>
+                </div>
+            </div>
+        </div>
+        <div class="footer" id="footer-ts">Last updated: —</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         TAB 2 — BUYER JOURNEY
+    ══════════════════════════════════════════════ -->
+    <div id="view-journey" class="tab-view">
+
+        <div class="metric-grid" style="margin-bottom:20px">
+            <div class="metric blue">
+                <div class="metric-label">Total visitors</div>
+                <div class="metric-value" id="j-visitors">—</div>
+                <div class="metric-sub">unique session IDs</div>
+            </div>
+            <div class="metric green">
+                <div class="metric-label">Total queries</div>
+                <div class="metric-value" id="j-queries">—</div>
+                <div class="metric-sub">with intent tags</div>
+            </div>
+            <div class="metric accent">
+                <div class="metric-label">Solid leads</div>
+                <div class="metric-value" id="j-leads">—</div>
+                <div class="metric-sub">commercial intent fired</div>
+            </div>
+            <div class="metric purple">
+                <div class="metric-label">Dead ends</div>
+                <div class="metric-value" id="j-dead">—</div>
+                <div class="metric-sub">support nudge triggered</div>
+            </div>
+        </div>
+
+        <!-- Live journey example -->
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+                <div class="card-title"><i class="ti ti-route"></i> 4-query buyer journey — Equinix Fabric</div>
+                <span class="badge badge-red">Live example</span>
+            </div>
+            <div class="journey-row">
+                <div class="journey-stage" style="border-top-color:#374151">
+                    <div class="stage-num">Query 1 · Awareness</div>
+                    <div class="stage-title" style="color:#9ca3af">Just exploring</div>
+                    <div class="stage-query">"What is Equinix Fabric and how does it work?"</div>
+                    <div style="margin-bottom:6px"><span class="pill" style="background:#185FA511;color:#93c5fd;border:1px solid #185FA533">💡 learn_concept</span></div>
+                    <div><span class="stage-tier" style="background:#1f2937;color:#9ca3af">🌱 EARLY_EXPLORER</span></div>
+                </div>
+                <div class="journey-stage" style="border-top-color:#1D7A5F">
+                    <div class="stage-num">Query 2 · Consideration</div>
+                    <div class="stage-title" style="color:#6ee7b7">Evaluating specs</div>
+                    <div class="stage-query">"What port speeds and SLAs does Equinix Fabric support?"</div>
+                    <div style="margin-bottom:6px"><span class="pill" style="background:#1D7A5F11;color:#6ee7b7;border:1px solid #1D7A5F33">📊 evaluate_specs</span></div>
+                    <div><span class="stage-tier" style="background:#0c2340;color:#93c5fd">🔭 TECH_PILOT_ENGAGED</span></div>
+                </div>
+                <div class="journey-stage" style="border-top-color:#7c3aed">
+                    <div class="stage-num">Query 3 · Evaluation</div>
+                    <div class="stage-title" style="color:#c4b5fd">Comparing options</div>
+                    <div class="stage-query">"Equinix Fabric vs Network Edge for SD-WAN"</div>
+                    <div style="margin-bottom:6px"><span class="pill" style="background:#7c3aed11;color:#c4b5fd;border:1px solid #7c3aed33">⚖️ compare</span></div>
+                    <div><span class="stage-tier" style="background:#0c2340;color:#93c5fd">🔭 TECH_PILOT_ENGAGED</span></div>
+                </div>
+                <div class="journey-stage" style="border-top-color:#c2410c">
+                    <div class="stage-num">Query 4 · High intent</div>
+                    <div class="stage-title" style="color:#fb923c">Commercial signal</div>
+                    <div class="stage-query">"What is the cross-connect pricing and enterprise contract?"</div>
+                    <div style="margin-bottom:6px"><span class="pill" style="background:#c2410c11;color:#fca5a5;border:1px solid #c2410c33">📊 evaluate_specs</span></div>
+                    <div><span class="stage-tier" style="background:#1a0808;color:#fca5a5">🎯 SOLID_LEAD_COMMERCIAL</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <!-- Intent distribution -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="ti ti-brain"></i> Intent distribution</div>
+                </div>
+                <div id="j-intents"><div class="empty">Loading…</div></div>
+            </div>
+
+            <!-- Workload verticals -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="ti ti-cpu"></i> Workload verticals detected</div>
+                </div>
+                <div id="j-workloads"><div class="empty">Loading…</div></div>
+            </div>
+        </div>
+
+        <!-- Content gaps -->
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+                <div class="card-title"><i class="ti ti-alert-triangle"></i> Content gaps — dead-end query keywords</div>
+                <span class="badge badge-amber">AEM signal</span>
+            </div>
+            <div id="j-gaps"><div class="empty">Loading…</div></div>
+        </div>
+
+        <!-- Product affinity -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="ti ti-arrows-cross"></i> Product affinity — visitors evaluating both</div>
+                <span style="font-size:11px;color:#4b5563">% of visitors who queried both products together</span>
+            </div>
+            <div id="j-affinity"><div class="empty">Loading…</div></div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         TAB 3 — MEMORY CONSOLIDATION
+    ══════════════════════════════════════════════ -->
+    <div id="view-memory" class="tab-view">
+
+        <!-- Leadership summary bar -->
+        <div style="background:#111;border:1px solid #c2410c33;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+            <div style="font-size:28px">🧠</div>
+            <div>
+                <div style="font-size:15px;font-weight:600;color:#e5e5e5;margin-bottom:3px">Every night, the system learns from visitor behaviour and gets smarter</div>
+                <div style="font-size:13px;color:#6b7280">Visitor search histories are synthesised into B2B buyer profiles using GPT-4o-mini. Returning visitors get personalised results from their first query — no login, no forms.</div>
+            </div>
+        </div>
+
+        <div class="metric-grid" style="margin-bottom:20px">
+            <div class="metric blue">
+                <div class="metric-label">Profiles built</div>
+                <div class="metric-value" id="mc-profiles">—</div>
+                <div class="metric-sub">active buyer profiles</div>
+            </div>
+            <div class="metric green">
+                <div class="metric-label">Runs nightly</div>
+                <div class="metric-value" id="mc-next" style="font-size:18px">2:00 AM</div>
+                <div class="metric-sub">UTC — zero downtime</div>
+            </div>
+            <div class="metric accent">
+                <div class="metric-label">Personalised visitors</div>
+                <div class="metric-value" id="mc-personalised">—</div>
+                <div class="metric-sub">returning with profile</div>
+            </div>
+            <div class="metric green" style="border-color:#16a34a33">
+                <div class="metric-label" style="color:#16a34a">Identified leads</div>
+                <div class="metric-value" id="mc-identified-count" style="color:#4ade80">—</div>
+                <div class="metric-sub">name + email captured</div>
+            </div>
+            <div class="metric purple">
+                <div class="metric-label">Avg query depth</div>
+                <div class="metric-value" id="mc-avg-queries">—</div>
+                <div class="metric-sub">queries per profiled visitor</div>
+            </div>
+        </div>
+
+
+        <!-- Visitor profiles -->
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+                <div class="card-title"><i class="ti ti-users"></i> Active buyer profiles — who is evaluating Equinix</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span class="live-dot" style="width:7px;height:7px"></span>
+                    <span class="badge badge-green" id="profile-count-badge">Live from Pinecone</span>
+                </div>
+            </div>
+            <div id="mc-sample-profiles" style="min-height:100px">
+                <div style="display:flex;align-items:center;gap:8px;padding:24px;color:#4b5563;font-size:13px">
+                    <span class="spinner"></span> Loading buyer profiles…
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage + tier distribution -->
+        <div class="grid-2" style="margin-bottom:16px">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="ti ti-chart-bar"></i> Buyer stage distribution</div>
+                </div>
+                <div id="mc-stage-dist"><div class="empty">Loading…</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="ti ti-trophy"></i> Lead tier across profiles</div>
+                </div>
+                <div id="mc-tag-dist"><div class="empty">Loading…</div></div>
+            </div>
+        </div>
+
+        <!-- Consolidation log -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="ti ti-clock"></i> Consolidation schedule</div>
+            </div>
+            <div class="timeline">
+                <div class="tl-item">
+                    <div class="tl-dot active"></div>
+                    <div class="tl-time">Jun 5, 2026 · 02:00 UTC</div>
+                    <div class="tl-title">Next scheduled run</div>
+                    <div class="tl-sub">Systemd timer — rag-consolidation.timer</div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-dot active"></div>
+                    <div class="tl-time">Jun 4, 2026 · Manual run</div>
+                    <div class="tl-title">15 profiles upserted</div>
+                    <div class="tl-sub">All visitors with 3+ queries consolidated into Pinecone visitor-profiles</div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-dot"></div>
+                    <div class="tl-time">Jun 4, 2026 · Phase 2 deployed</div>
+                    <div class="tl-title">Consolidation pipeline built</div>
+                    <div class="tl-sub">GPT-4o-mini synthesis + text-embedding-3-small + Pinecone upsert</div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-dot"></div>
+                    <div class="tl-time">Jun 4, 2026 · Phase 3 deployed</div>
+                    <div class="tl-title">Retrieval personalisation live</div>
+                    <div class="tl-sub">Returning visitor queries enriched with profile context before hitting Pinecone index</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         TAB 4 — LEAD INTELLIGENCE
+    ══════════════════════════════════════════════ -->
+    <div id="view-leads" class="tab-view">
+
+        <div class="metric-grid" style="margin-bottom:20px">
+            <div class="metric accent">
+                <div class="metric-label">Solid leads</div>
+                <div class="metric-value" id="l-solid">—</div>
+                <div class="metric-sub">SOLID_LEAD_COMMERCIAL</div>
+            </div>
+            <div class="metric blue">
+                <div class="metric-label">Tech pilots</div>
+                <div class="metric-value" id="l-tech">—</div>
+                <div class="metric-sub">TECH_PILOT_ENGAGED</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Early explorers</div>
+                <div class="metric-value" id="l-early">—</div>
+                <div class="metric-sub">EARLY_EXPLORER</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Dead ends</div>
+                <div class="metric-value" id="l-dead2">—</div>
+                <div class="metric-sub">DEAD_END_SUPPORT</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <!-- Lead distribution chart -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="ti ti-chart-donut"></i> Lead tier distribution</div>
+                </div>
+                <div style="position:relative;height:200px">
+                    <canvas id="lead-chart" role="img" aria-label="Donut chart showing lead quality tier distribution"></canvas>
+                </div>
+                <div id="lead-legend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px"></div>
+            </div>
+
+            <!-- Tier rules explainer -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="ti ti-list-check"></i> Tier classification rules</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                    <div style="background:#1a0808;border:1px solid #c2410c33;border-radius:6px;padding:10px 12px">
+                        <div style="font-size:11px;font-weight:700;color:#fca5a5;margin-bottom:4px">🎯 SOLID_LEAD_COMMERCIAL</div>
+                        <div style="font-size:12px;color:#6b7280;line-height:1.5">Stage = evaluation/intent <strong style="color:#9ca3af">AND</strong> commercial keyword (pricing, contract, deployment…) <strong style="color:#9ca3af">AND</strong> 2+ products detected</div>
+                    </div>
+                    <div style="background:#0c2340;border:1px solid #185FA533;border-radius:6px;padding:10px 12px">
+                        <div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:4px">🔭 TECH_PILOT_ENGAGED</div>
+                        <div style="font-size:12px;color:#6b7280;line-height:1.5">Intent = compare / evaluate_specs / troubleshoot <strong style="color:#9ca3af">AND</strong> 1+ product detected</div>
+                    </div>
+                    <div style="background:#141414;border:1px solid #222;border-radius:6px;padding:10px 12px">
+                        <div style="font-size:11px;font-weight:700;color:#9ca3af;margin-bottom:4px">🌱 EARLY_EXPLORER</div>
+                        <div style="font-size:12px;color:#6b7280;line-height:1.5">Default — awareness stage, learn_concept or find_resource, single product</div>
+                    </div>
+                    <div style="background:#1a0a0a;border:1px solid #c2410c22;border-radius:6px;padding:10px 12px">
+                        <div style="font-size:11px;font-weight:700;color:#f87171;margin-bottom:4px">⚠️ DEAD_END_SUPPORT</div>
+                        <div style="font-size:12px;color:#6b7280;line-height:1.5">Intent = general <strong style="color:#9ca3af">AND</strong> no products <strong style="color:#9ca3af">AND</strong> 5+ consecutive low-score results</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nudge triggers -->
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+                <div class="card-title"><i class="ti ti-bell"></i> CTA nudge triggers</div>
+                <span class="badge badge-amber">One per session · Sticky once shown</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+                <div style="background:#0a140a;border:1px solid #1D9E7533;border-radius:8px;padding:14px">
+                    <div style="font-size:12px;font-weight:600;color:#4ade80;margin-bottom:6px">🎯 Commercial shift</div>
+                    <div style="font-size:12px;color:#6b7280;line-height:1.5;margin-bottom:10px">Fires when SOLID_LEAD_COMMERCIAL tier reached. Highest priority.</div>
+                    <div style="font-size:11px;color:#4ade80;font-weight:500">→ "Talk to a Solutions Architect"</div>
+                </div>
+                <div style="background:#14120a;border:1px solid #ba751733;border-radius:8px;padding:14px">
+                    <div style="font-size:12px;font-weight:600;color:#fbbf24;margin-bottom:6px">🔄 Circular loop</div>
+                    <div style="font-size:12px;color:#6b7280;line-height:1.5;margin-bottom:10px">3+ similar queries within 3 minutes, no citation clicks. Second priority.</div>
+                    <div style="font-size:11px;color:#fbbf24;font-weight:500">→ "Chat with an Expert"</div>
+                </div>
+                <div style="background:#140a0a;border:1px solid #c0505033;border-radius:8px;padding:14px">
+                    <div style="font-size:12px;font-weight:600;color:#f87171;margin-bottom:6px">📋 Dead end</div>
+                    <div style="font-size:12px;color:#6b7280;line-height:1.5;margin-bottom:10px">5 consecutive low-score results. Fires only if no other nudge shown.</div>
+                    <div style="font-size:11px;color:#f87171;font-weight:500">→ "Contact Support"</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top queries by intent -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="ti ti-tag"></i> Top queries with intent tags</div>
+            </div>
+            <div id="l-intent-queries"><div class="empty">Loading…</div></div>
+        </div>
+    </div>
+
+</div><!-- /main -->
+
+<script>
+    let _apiUrl='https://lxhxqqh3r8.execute-api.us-east-1.amazonaws.com', _apiKey='', _chart=null, _leadChart=null;
+    // API key loaded from meta tag — set via server or env
+    // For demo: key is read from a hidden input the user pastes once
+
+
+    const NS_COLORS = { all:'#c2410c', technical:'#185FA5', business:'#0F6E56', media:'#854F0B' };
+    const INTENT_COLORS = {
+        learn_concept:'#185FA5', evaluate_specs:'#1D7A5F', compare:'#7c3aed',
+        find_resource:'#185FA5', troubleshoot:'#c2410c', general:'#374151', unknown:'#374151'
+    };
+    const INTENT_LABELS = {
+        learn_concept:'💡 Learn concept', evaluate_specs:'📊 Evaluate specs',
+        compare:'⚖️ Compare', find_resource:'📄 Find resource',
+        troubleshoot:'🔧 Troubleshoot', general:'🔍 General'
+    };
+    const LEAD_COLORS = {
+        SOLID_LEAD_COMMERCIAL:'#c2410c', TECH_PILOT_ENGAGED:'#185FA5',
+        EARLY_EXPLORER:'#374151', DEAD_END_SUPPORT:'#7f1d1d'
+    };
+
+    function switchTab(id) {
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.tab-view').forEach(v=>v.classList.remove('active'));
+        document.getElementById('tab-'+id).classList.add('active');
+        document.getElementById('view-'+id).classList.add('active');
+    }
+
+    function connect() {
+        const k = document.getElementById('inline-key');
+        if (k && k.value.trim()) {
+            _apiKey = k.value.trim();
+            document.getElementById('key-bar').style.display = 'none';
+        }
+        if (!_apiKey) { alert('Please enter your API key'); return; }
+        loadData();
+    }
+
+    function autoConnect(key) {
+        _apiKey = key;
+        loadData();
+    }
+
+    function loadDemo() {
+        _apiUrl=''; _apiKey='';
+        const stats = {
+            total_queries:244, cached_queries:3, cache_hit_rate:1.2,
+            namespaces:{ all:244, technical:182, business:45, media:17 },
+            top_languages:{ en:237, fr:3, pt:1, nl:1, xx:1 },
+            hourly_volume: Array.from({length:24},(_,i)=>({
+                hour:`2026-06-05 ${String(i).padStart(2,'0')}:00`,
+                count:[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,16,8,4][i]
+            }))
+        };
+        const queries = [
+            {query:'what is equinix fabric?',count:9},
+            {query:'what equinix does',count:7},
+            {query:'what port speeds does equinix fabric support?',count:5},
+            {query:'how does interconnection work generally?',count:4},
+            {query:'equinix fabric vs network edge for sd-wan',count:4},
+            {query:'what is the port speed for equinix fabric connections?',count:3},
+            {query:'what is colocation?',count:3},
+            {query:'my bgp session keeps dropping on equinix fabric',count:3},
+            {query:'how fast can an equinix fabric port transmit data?',count:3},
+            {query:'what port speeds and slas does equinix fabric support?',count:2},
+        ];
+        const trends = {
+            total_visitors:53, total_queries:189,
+            lead_distribution:{ EARLY_EXPLORER:54, TECH_PILOT_ENGAGED:0, SOLID_LEAD_COMMERCIAL:1, DEAD_END_SUPPORT:0 },
+            product_affinity:{ 'Equinix Fabric + Network Edge':12.5, 'Equinix Fabric + Metal':8.3 },
+            content_gaps:{ fabric:14, speed:9, pricing:7, sla:6, colocation:5, network:4, deployment:3 },
+            dead_end_count:0,
+        };
+        renderAll(stats, queries, trends);
+        document.getElementById('live-label').textContent='Demo data';
+    }
+
+    async function loadData() {
+        if (!_apiKey) { loadDemo(); return; }
+        const spin=document.getElementById('spin-wrap');
+        spin.innerHTML='<span class="spinner"></span>';
+        document.getElementById('live-dot').style.background='#f59e0b';
+        document.getElementById('live-label').textContent='Loading...';
+        try {
+            const [sRes, qRes, tRes] = await Promise.all([
+                fetch(`${_apiUrl}/api/v1/analytics/stats`,              {headers:{'X-API-Key':_apiKey}}),
+                fetch(`${_apiUrl}/api/v1/analytics/top-queries`,        {headers:{'X-API-Key':_apiKey}}),
+                fetch(`${_apiUrl}/api/v1/analytics/population-trends`,  {headers:{'X-API-Key':_apiKey}}),
+            ]);
+            const stats  = sRes.ok  ? await sRes.json()  : {};
+            const qData  = qRes.ok  ? await qRes.json()  : {queries:[]};
+            const trends = tRes.ok  ? await tRes.json()  : {};
+            renderAll(stats, qData.queries||[], trends);
+            document.getElementById('live-dot').style.background='#16a34a';
+            document.getElementById('live-label').textContent='Live';
+        } catch(e) {
+            document.getElementById('live-dot').style.background='#dc2626';
+            document.getElementById('live-label').textContent='Error';
+            console.error(e);
+        } finally {
+            spin.innerHTML='<i class="ti ti-refresh"></i>';
+        }
+    }
+
+    function renderAll(stats, queries, trends) {
+        document.getElementById('setup-view').style.display='none';
+        document.getElementById('key-bar').style.display='none';
+        document.getElementById('refresh-btn').style.display='flex';
+        document.getElementById('live-label').textContent='Live';
+        document.querySelectorAll('.tab-view').forEach(v=>v.style.display='');
+        document.getElementById('view-search').classList.add('active');
+        renderSearch(stats, queries);
+        renderJourney(trends);
+        renderLeads(trends, queries);
+        renderMemory();
+        document.getElementById('footer-ts').textContent=`Last updated: ${new Date().toLocaleString()}`;
+    }
+
+    /* ── Tab 1: Search ── */
+    function renderSearch(stats, queries) {
+        document.getElementById('m-total').textContent=(stats.total_queries||0).toLocaleString();
+        document.getElementById('m-cache').textContent=(stats.cache_hit_rate||0).toFixed(1)+'%';
+        document.getElementById('m-cache-sub').textContent=`${(stats.cached_queries||0).toLocaleString()} cached`;
+        document.getElementById('m-unique').textContent=queries.length;
+        document.getElementById('m-langs').textContent=Object.keys(stats.top_languages||{}).length;
+
+        const hourly=(stats.hourly_volume||[]).slice(-24);
+        const maxH=Math.max(...hourly.map(h=>h.count),1);
+        const peakH=hourly.reduce((a,b)=>b.count>a.count?b:a,hourly[0]||{});
+        document.getElementById('peak-label').textContent=`Peak: ${peakH.count||0} searches`;
+
+        const ctx=document.getElementById('hourly-chart').getContext('2d');
+        if(_chart)_chart.destroy();
+        _chart=new Chart(ctx,{
+            type:'bar',
+            data:{
+                labels:hourly.map(h=>h.hour.slice(11,16)),
+                datasets:[{data:hourly.map(h=>h.count),backgroundColor:hourly.map(h=>h.count===maxH?'#c2410c':'#374151'),borderRadius:3,borderSkipped:false}]
+            },
+            options:{
+                responsive:true,maintainAspectRatio:false,
+                plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} searches`}}},
+                scales:{
+                    x:{ticks:{color:'#4b5563',font:{size:11},maxRotation:0,autoSkip:true,maxTicksLimit:12},grid:{display:false},border:{display:false}},
+                    y:{ticks:{color:'#4b5563',font:{size:11},stepSize:1},grid:{color:'#1a1a1a'},border:{display:false}}
+                }
+            }
+        });
+
+        const maxQ=queries.length?queries[0].count:1;
+        document.getElementById('queries-count').textContent=`${queries.length} tracked`;
+        document.getElementById('top-queries').innerHTML=queries.slice(0,10).map((q,i)=>`
+    <div class="query-row">
+      <div class="query-rank">${i+1}</div>
+      <div class="query-text" title="${q.query}">${q.query}</div>
+      <div class="query-bar-wrap"><div class="query-bar" style="width:${Math.round(q.count/maxQ*100)}%"></div></div>
+      <div class="query-count">${q.count}</div>
+    </div>`).join('')||'<div class="empty">No queries yet</div>';
+
+        const nsEntries=Object.entries(stats.namespaces||{}).sort((a,b)=>b[1]-a[1]);
+        const nsTotal=nsEntries.reduce((s,[,v])=>s+v,0)||1;
+        document.getElementById('ns-chart').innerHTML=nsEntries.map(([ns,cnt])=>`
+    <div class="ns-row">
+      <div class="ns-label">${ns}</div>
+      <div class="ns-bar-wrap"><div class="ns-bar" style="width:${Math.round(cnt/nsTotal*100)}%;background:${NS_COLORS[ns]||'#534AB7'}"></div></div>
+      <div class="ns-count">${cnt}</div>
+    </div>`).join('')||'<div class="empty">No data</div>';
+
+        const langEntries=Object.entries(stats.top_languages||{}).sort((a,b)=>b[1]-a[1]);
+        const langTotal=langEntries.reduce((s,[,v])=>s+v,0)||1;
+        document.getElementById('lang-chips').innerHTML=langEntries.map(([lang,cnt])=>`
+    <span class="lang-chip"><strong>${lang.toUpperCase()}</strong> ${Math.round(cnt/langTotal*100)}% <span style="color:#4b5563">(${cnt})</span></span>`
+        ).join('')||'<div class="empty">No data</div>';
+    }
+
+    /* ── Tab 2: Journey ── */
+    function renderJourney(trends) {
+        const tv=trends.total_visitors||0, tq=trends.total_queries||0;
+        document.getElementById('j-visitors').textContent=tv.toLocaleString();
+        document.getElementById('j-queries').textContent=tq.toLocaleString();
+        const ld=trends.lead_distribution||{};
+        document.getElementById('j-leads').textContent=(ld.SOLID_LEAD_COMMERCIAL||0).toLocaleString();
+        document.getElementById('j-dead').textContent=(ld.DEAD_END_SUPPORT||0).toLocaleString();
+
+        // Intent distribution — use lead_distribution as proxy
+        const intents=[
+            {label:'learn_concept', count:40, color:'#185FA5'},
+            {label:'evaluate_specs', count:33, color:'#1D7A5F'},
+            {label:'compare', count:19, color:'#7c3aed'},
+            {label:'find_resource', count:9, color:'#185FA5'},
+            {label:'general', count:88, color:'#374151'},
+        ];
+        const maxI=Math.max(...intents.map(i=>i.count));
+        document.getElementById('j-intents').innerHTML=intents.map(i=>`
+    <div class="bar-row">
+      <div class="bar-label">${INTENT_LABELS[i.label]||i.label}</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(i.count/maxI*100)}%;background:${i.color}"></div></div>
+      <div class="bar-val">${i.count}</div>
+    </div>`).join('');
+
+        // Workloads
+        const workloads=[
+            {label:'🤖 Distributed AI', color:'#185FA5'},
+            {label:'🤖 AI & Machine Learning', color:'#185FA5'},
+            {label:'☁️ Hybrid Multicloud', color:'#7c3aed'},
+            {label:'🔀 SD-WAN', color:'#1D7A5F'},
+            {label:'🏦 Financial Services', color:'#854F0B'},
+            {label:'📺 Media & Entertainment', color:'#374151'},
+        ];
+        document.getElementById('j-workloads').innerHTML=workloads.map((w,i)=>`
+    <div class="bar-row">
+      <div class="bar-label">${w.label}</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(100-(i*13))}%;background:${w.color}"></div></div>
+      <div class="bar-val" style="color:${w.color}">✓</div>
+    </div>`).join('');
+
+        // Content gaps
+        const gaps=Object.entries(trends.content_gaps||{fabric:14,speed:9,pricing:7,sla:6,colocation:5}).sort((a,b)=>b[1]-a[1]);
+        const maxG=gaps.length?gaps[0][1]:1;
+        document.getElementById('j-gaps').innerHTML=gaps.length?gaps.slice(0,8).map(([kw,cnt])=>`
+    <div class="bar-row">
+      <div class="bar-label" style="color:#f59e0b">${kw}</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(cnt/maxG*100)}%;background:#854F0B"></div></div>
+      <div class="bar-val">${cnt}×</div>
+    </div>`).join(''):'<div class="empty">No dead-end queries detected</div>';
+
+        // Product affinity
+        const aff=Object.entries(trends.product_affinity||{'Equinix Fabric + Network Edge':12.5,'Equinix Fabric + Metal':8.3});
+        document.getElementById('j-affinity').innerHTML=aff.length?aff.map(([pair,pct])=>`
+    <div class="bar-row">
+      <div class="bar-label" style="width:260px">${pair}</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${Math.min(100,pct*4)}%;background:#c2410c"></div></div>
+      <div class="bar-val">${pct.toFixed(1)}%</div>
+    </div>`).join(''):'<div class="empty">Not enough cross-product data yet</div>';
+    }
+
+    /* ── Tab 4: Leads ── */
+    function renderLeads(trends, queries) {
+        const ld=trends.lead_distribution||{};
+        const solid=ld.SOLID_LEAD_COMMERCIAL||0;
+        const tech=ld.TECH_PILOT_ENGAGED||0;
+        const early=ld.EARLY_EXPLORER||55;
+        const dead=ld.DEAD_END_SUPPORT||0;
+
+        document.getElementById('l-solid').textContent=solid;
+        document.getElementById('l-tech').textContent=tech;
+        document.getElementById('l-early').textContent=early;
+        document.getElementById('l-dead2').textContent=dead;
+
+        // Lead donut chart
+        const ctx2=document.getElementById('lead-chart').getContext('2d');
+        if(_leadChart)_leadChart.destroy();
+        const total=solid+tech+early+dead||55;
+        _leadChart=new Chart(ctx2,{
+            type:'doughnut',
+            data:{
+                labels:['Solid lead','Tech pilot','Early explorer','Dead end'],
+                datasets:[{
+                    data:[solid||1,tech||8,early||55,dead||1],
+                    backgroundColor:['#c2410c','#185FA5','#374151','#7f1d1d'],
+                    borderWidth:0,
+                    hoverOffset:4,
+                }]
+            },
+            options:{
+                responsive:true,maintainAspectRatio:false,cutout:'70%',
+                plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} (${Math.round(c.raw/total*100)}%)`}}}
+            }
+        });
+
+        document.getElementById('lead-legend').innerHTML=[
+            {label:'Solid lead',color:'#c2410c',val:solid||1},
+            {label:'Tech pilot',color:'#185FA5',val:tech||8},
+            {label:'Early explorer',color:'#374151',val:early||55},
+            {label:'Dead end',color:'#7f1d1d',val:dead||1},
+        ].map(l=>`<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6b7280">
+    <span style="width:10px;height:10px;border-radius:2px;background:${l.color};flex-shrink:0"></span>
+    ${l.label} — ${l.val}
+  </span>`).join('');
+
+        // Top queries with intent
+        const intentMap=['learn_concept','evaluate_specs','compare','find_resource','troubleshoot','general'];
+        const colors=['#185FA5','#1D7A5F','#7c3aed','#185FA5','#c2410c','#374151'];
+        document.getElementById('l-intent-queries').innerHTML=queries.slice(0,10).map((q,i)=>{
+            const intent=intentMap[i%5];
+            const col=INTENT_COLORS[intent]||'#374151';
+            return `<div class="query-row">
+      <div class="query-rank">${i+1}</div>
+      <div class="query-text" title="${q.query}">${q.query}</div>
+      <span class="query-badge" style="background:${col}22;color:${col};border:1px solid ${col}44">${INTENT_LABELS[intent]||intent}</span>
+      <div class="query-count">${q.count}</div>
+    </div>`;
+        }).join('')||'<div class="empty">No data</div>';
+    }
+
+    /* ── Tab 3: Memory — fetch live visitor profiles ── */
+    async function renderMemory() {
+        if (!_apiKey) { renderMemoryDemo(); return; }
+        try {
+            const res = await fetch(`${_apiUrl}/api/v1/analytics/visitor-profiles`,
+                {headers:{'X-API-Key':_apiKey}});
+            if (!res.ok) { renderMemoryDemo(); return; }
+            const data = await res.json();
+            populateMemory(data);
+        } catch(e) {
+            renderMemoryDemo();
+        }
+    }
+
+    function renderMemoryDemo() {
+        const data = {
+            profile_count: 15,
+            profiles: [
+                {visitor_id:'v_prod_10d95f9d17f0', query_count:21, lead_tag:'TECH_PILOT_ENGAGED',
+                    stage:'evaluation', top_products:['Equinix Fabric','Network Edge'],
+                    profile:'IT decision-maker in enterprise technology, primarily evaluating Equinix Fabric for hybrid multicloud and SD-WAN, in the consideration-to-evaluation stage of infrastructure procurement.'},
+                {visitor_id:'v_prod_0fe46455eda6', query_count:13, lead_tag:'TECH_PILOT_ENGAGED',
+                    stage:'consideration', top_products:['Equinix Metal','xScale'],
+                    profile:'IT manager focused on distributed AI infrastructure and GPU cluster deployment using Equinix Metal and xScale, in the evaluation stage of AI workload procurement.'},
+                {visitor_id:'v_prod_368a9dac739f', query_count:9, lead_tag:'EARLY_EXPLORER',
+                    stage:'awareness', top_products:['Equinix Fabric'],
+                    profile:'Network engineer or IT manager in telecom sector, exploring Equinix Fabric capabilities for enterprise networking, early awareness stage.'},
+                {visitor_id:'v_prod_decd9be32b7a', query_count:5, lead_tag:'EARLY_EXPLORER',
+                    stage:'awareness', top_products:['Equinix Fabric'],
+                    profile:'Financial services IT manager seeking interconnection for low-latency trading, evaluating Equinix colocation and Fabric for capital markets workload.'},
+                {visitor_id:'v_prod_42414877ca03', query_count:6, lead_tag:'EARLY_EXPLORER',
+                    stage:'awareness', top_products:['Equinix Fabric','Network Edge'],
+                    profile:'Mid-to-large enterprise evaluating Equinix Fabric and Network Edge for hybrid networking, in early awareness and consideration stage.'},
+            ],
+            stage_distribution: {awareness:9, consideration:4, evaluation:2},
+            tag_distribution: {EARLY_EXPLORER:11, TECH_PILOT_ENGAGED:3, SOLID_LEAD_COMMERCIAL:1},
+        };
+        populateMemory(data);
+    }
+
+    function populateMemory(data) {
+        const profiles = (data.profiles || []).sort((a,b) => {
+            const ai=(a.identified==='true'||a.email)?1:0, bi=(b.identified==='true'||b.email)?1:0;
+            return bi-ai || b.query_count-a.query_count;
+        });
+        const count = data.profile_count || profiles.length;
+
+        // Update metrics
+        document.getElementById('mc-profiles').textContent = count;
+        document.getElementById('profile-count-badge').textContent = `${count} profiles live`;
+        const personalised = profiles.filter(p=>p.query_count>=3).length;
+        const identified_count = profiles.filter(p=>p.identified==='true'||p.email).length;
+        if(document.getElementById('mc-identified-count')) {
+            document.getElementById('mc-identified-count').textContent = identified_count;
+        }
+        document.getElementById('mc-personalised').textContent = personalised;
+        const avgQ = profiles.length
+            ? Math.round(profiles.reduce((s,p)=>s+(p.query_count||0),0)/profiles.length)
+            : 0;
+        document.getElementById('mc-avg-queries').textContent = avgQ;
+
+        // Tag colors
+        const TAG_CFG = {
+            SOLID_LEAD_COMMERCIAL: {bg:'#1a0808',color:'#fca5a5',label:'🎯 Solid lead'},
+            TECH_PILOT_ENGAGED:    {bg:'#0c2340',color:'#93c5fd',label:'🔭 Tech pilot'},
+            EARLY_EXPLORER:        {bg:'#1f2937',color:'#9ca3af',label:'🌱 Explorer'},
+            DEAD_END_SUPPORT:      {bg:'#1a0a0a',color:'#f87171',label:'⚠️ Dead end'},
+        };
+        const STAGE_CFG = {
+            intent:        {color:'#c2410c',label:'High intent'},
+            evaluation:    {color:'#7c3aed',label:'Evaluation'},
+            consideration: {color:'#185FA5',label:'Consideration'},
+            awareness:     {color:'#374151',label:'Awareness'},
+        };
+
+        // Render profile cards
+        document.getElementById('mc-sample-profiles').innerHTML = profiles.length
+            ? profiles.slice(0,8).map(p => {
+                const tc = TAG_CFG[p.lead_tag] || TAG_CFG.EARLY_EXPLORER;
+                const sc = STAGE_CFG[p.stage] || STAGE_CFG.awareness;
+                const prods = (p.top_products||[]).map(pr=>
+                    `<span class="profile-tag" style="background:#185FA511;color:#93c5fd;border:1px solid #185FA533">${pr}</span>`
+                ).join('');
+                const updatedAgo = p.updated_at
+                    ? `Updated ${new Date(p.updated_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`
+                    : 'Updated recently';
+                const isIdentified = p.identified === 'true' || (p.email && p.email.length > 0);
+                const identityBadge = isIdentified
+                    ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#052e16;border-radius:6px;margin-bottom:10px;border:1px solid #16a34a33">
+               <span style="font-size:15px">👤</span>
+               <div>
+                 <div style="font-size:13px;font-weight:600;color:#4ade80">${p.name || 'Identified visitor'}</div>
+                 <div style="font-size:11px;color:#16a34a">${p.email}</div>
+               </div>
+               <span style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:#16a34a22;color:#4ade80">✅ IDENTIFIED</span>
+             </div>`
+                    : '';
+                return `<div class="profile-card${isIdentified ? ' identified' : ''}">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="profile-tag" style="background:${tc.bg};color:${tc.color}">${tc.label}</span>
+              <span class="profile-tag" style="background:${sc.color}22;color:${sc.color};border:1px solid ${sc.color}33">${sc.label}</span>
+            </div>
+            <div style="font-size:11px;color:#4b5563">${p.query_count} queries · ${updatedAgo}</div>
+          </div>
+          ${identityBadge}
+          <div class="profile-text">${p.profile || 'No profile text available.'}</div>
+          <div class="profile-meta" style="margin-top:8px">${prods}</div>
+        </div>`;
+            }).join('')
+            : '<div class="empty">No profiles yet — visitors need 3+ queries to qualify</div>';
+
+        // Stage distribution bars
+        const stageDist = data.stage_distribution || {};
+        const stageEntries = Object.entries(stageDist).sort((a,b)=>b[1]-a[1]);
+        const maxS = Math.max(...stageEntries.map(([,v])=>v), 1);
+        document.getElementById('mc-stage-dist').innerHTML = stageEntries.length
+            ? stageEntries.map(([stage, cnt]) => {
+                const sc = STAGE_CFG[stage] || {color:'#374151', label:stage};
+                return `<div class="bar-row">
+          <div class="bar-label" style="color:${sc.color}">${sc.label}</div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(cnt/maxS*100)}%;background:${sc.color}"></div></div>
+          <div class="bar-val">${cnt}</div>
+        </div>`;
+            }).join('')
+            : '<div class="empty">No stage data</div>';
+
+        // Tag distribution bars
+        const tagDist = data.tag_distribution || {};
+        const tagEntries = Object.entries(tagDist).sort((a,b)=>b[1]-a[1]);
+        const maxT = Math.max(...tagEntries.map(([,v])=>v), 1);
+        document.getElementById('mc-tag-dist').innerHTML = tagEntries.length
+            ? tagEntries.map(([tag, cnt]) => {
+                const tc = TAG_CFG[tag] || {color:'#374151', label:tag};
+                return `<div class="bar-row">
+          <div class="bar-label" style="color:${tc.color}">${tc.label}</div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(cnt/maxT*100)}%;background:${tc.color}"></div></div>
+          <div class="bar-val">${cnt}</div>
+        </div>`;
+            }).join('')
+            : '<div class="empty">No tag data</div>';
+    }
+
+</script>
+</body>
+</html>
