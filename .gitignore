@@ -12,3 +12,5 @@ __pycache__/
 .env
 logs/
 *.bak
+*.bak.*
+*.bak.[0-9]*
