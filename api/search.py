@@ -15,6 +15,7 @@ from pipeline.embedder  import embed_text
 from pipeline.retriever import retrieve_chunks
 from pipeline.reranker  import rerank_chunks, build_context
 from pipeline.generator import generate_answer, prepare_query
+from pipeline.competitor_detector import detect_competitors
 from langsmith import traceable
 
 log    = logging.getLogger(__name__)
@@ -534,6 +535,7 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
     result        = pipeline_out["result"]
     reranked      = pipeline_out["reranked"]
     detected_lang = pipeline_out["detected_lang"]
+    _competitors = detect_competitors(req.query, get_config("competitor_signals", None))
 
     # Cache hit path
     if result.get("cache_hit") or result.get("semantic_hit"):
@@ -569,6 +571,7 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
                     lead_quality_tag  = pipeline_out.get("lead_quality_tag", "EARLY_EXPLORER"),
                     resource_types    = pipeline_out.get("resource_types", []),
                     detected_workloads= pipeline_out.get("detected_workloads", []),
+                    detected_competitors = _competitors,
                 )
             except Exception:
                 pass
@@ -672,6 +675,7 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
                 lead_quality_tag   = pipeline_out.get("lead_quality_tag", "EARLY_EXPLORER"),
                 resource_types     = pipeline_out.get("resource_types", []),
                 detected_workloads = pipeline_out.get("detected_workloads", []),
+                detected_competitors = _competitors,
             )
             print(f"📡 [BACKEND SUCCESS] Committed tracking step to DynamoDB for ID: {req.visitor_id}")
         except Exception as e:
