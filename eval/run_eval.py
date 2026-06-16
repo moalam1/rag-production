@@ -75,12 +75,20 @@ def predict(inputs: dict) -> dict:
     """Call the live RAG API and return the answer + sources."""
     query = inputs["query"]
     try:
-        resp = requests.post(
-            f"{API_URL}/api/v1/search",
-            json={"query": query},
-            headers={"Content-Type": "application/json", "X-API-Key": API_KEY},
-            timeout=90,
-        )
+        import time as _t
+        resp = None
+        for _attempt in range(5):
+            resp = requests.post(
+                f"{API_URL}/api/v1/search",
+                json={"query": query},
+                headers={"Content-Type": "application/json", "X-API-Key": API_KEY},
+                timeout=90,
+            )
+            if resp.status_code != 429:
+                break
+            _wait = 2 ** _attempt            # 1,2,4,8,16s backoff
+            _t.sleep(_wait)
+        _t.sleep(0.5)                        # pace between questions
         resp.raise_for_status()
         data = resp.json()
         return {
@@ -95,7 +103,39 @@ def predict(inputs: dict) -> dict:
 
 # ── Evaluators ────────────────────────────────────────────────────
 
+
+# ════════════ SENTINEL HANDLING (behavioural tests, no source doc) ════════════
+SENTINEL_DOCS = {"PRICING_REDIRECT", "NO_ANSWER"}
+_REDIRECT_MARKERS = ("equinix.com/contact", "solutions architect", "custom quote", "contact our team")
+_DECLINE_MARKERS  = ("could not find", "couldn't find", "not in", "not available",
+                     "no specific information", "cannot find", "don't have", "do not have")
+
+def _sentinel_score(relevant_doc, answer):
+    if relevant_doc not in SENTINEL_DOCS:
+        return None
+    a = (answer or "").lower()
+    if relevant_doc == "PRICING_REDIRECT":
+        ok = any(m in a for m in _REDIRECT_MARKERS)
+        return (1.0 if ok else 0.0, "redirected" if ok else "FAILED: no redirect (price hallucination risk)")
+    ok = any(m in a for m in _DECLINE_MARKERS)
+    return (1.0 if ok else 0.0, "declined" if ok else "FAILED: did not decline (hallucination risk)")
+
+def _extract(run, example):
+    rd = ""
+    try: rd = (example.outputs or {}).get("relevant_doc","")
+    except Exception:
+        try: rd = example.get("relevant_doc","")
+        except Exception: pass
+    ans = ""
+    try: ans = (run.outputs or {}).get("answer","")
+    except Exception: pass
+    return rd, ans
+
 def faithfulness_evaluator(run, example) -> dict:
+    _rd, _ans = _extract(run, example)
+    _s = _sentinel_score(_rd, _ans)
+    if _s is not None:
+        return {'key': 'faithfulness', 'score': _s[0], 'comment': _s[1]}
     """
     Measures: did the answer make up anything not in the ground truth?
     Score 0-1: 1 = fully faithful, 0 = hallucinated.
@@ -137,6 +177,10 @@ Return ONLY a decimal number between 0 and 1. Nothing else."""
 
 
 def answer_relevancy_evaluator(run, example) -> dict:
+    _rd, _ans = _extract(run, example)
+    _s = _sentinel_score(_rd, _ans)
+    if _s is not None:
+        return {'key': 'answer_relevancy', 'score': _s[0], 'comment': _s[1]}
     """
     Measures: did the answer actually address the question?
     Score 0-1: 1 = directly answers, 0 = irrelevant or off-topic.
@@ -176,6 +220,10 @@ Return ONLY a decimal number between 0 and 1. Nothing else."""
 
 
 def source_retrieval_evaluator(run, example) -> dict:
+    _rd, _ans = _extract(run, example)
+    _s = _sentinel_score(_rd, _ans)
+    if _s is not None:
+        return {'key': 'source_retrieval', 'score': _s[0], 'comment': _s[1]}
     """
     Measures: did the system retrieve the correct source document?
     Score 1 if relevant_doc appears in sources, 0 if not.
@@ -210,6 +258,7 @@ def main():
     parser.add_argument("--category",   help="Filter by category (ai, financial, product, definition, etc.)")
     parser.add_argument("--difficulty", help="Filter by difficulty (easy, medium, hard)")
     parser.add_argument("--limit",      type=int, help="Limit number of examples")
+    parser.add_argument("--set-baseline", action="store_true", help="Freeze current scores as gate baseline")
     parser.add_argument("--upload",     action="store_true", help="Re-upload dataset to LangSmith")
     args = parser.parse_args()
 
@@ -260,22 +309,69 @@ def main():
     print()
 
     scores = {}
-    for r in results:
-        for feedback in (r.feedback or []):
-            key = feedback.key
-            if key not in scores:
-                scores[key] = []
-            scores[key].append(feedback.score or 0)
+    # Authoritative scores come from LangSmith (the live evaluate() return
+    # shape is unreliable across client versions). Pull by experiment name.
+    import time as _t
+    _t.sleep(5)  # let feedback finalise
+    try:
+        for _run in LS_CLIENT.list_runs(project_name=getattr(results,"experiment_name",None) or experiment_name):
+            for _fb in LS_CLIENT.list_feedback(run_ids=[_run.id]):
+                if _fb.key and _fb.score is not None:
+                    scores.setdefault(_fb.key, []).append(_fb.score)
+    except Exception as _e:
+        print("⚠ could not pull scores from LangSmith:", _e)
 
-    for metric, vals in scores.items():
+    for metric, vals in sorted(scores.items()):
         avg = sum(vals) / len(vals) if vals else 0
         status = "✅" if avg >= 0.80 else "⚠️" if avg >= 0.60 else "❌"
-        print(f"{status} {metric:<25} {avg:.3f}  (target: ≥0.80)")
-
+        print(f"{status} {metric:<25} {avg:.3f}  (n={len(vals)}, target: ≥0.80)")
     print()
     overall = sum(sum(v)/len(v) for v in scores.values()) / len(scores) if scores else 0
     print(f"Overall score: {overall:.3f}")
+    import sys as _sys
+    _sys.exit(gate_check(scores, update_baseline='--set-baseline' in _sys.argv))
     print("="*50)
+
+
+# ════════════ BASELINE GATE ════════════
+BASELINE_PATH = "eval/golden_baseline.json"
+REGRESSION_TOLERANCE = 0.02
+ABSOLUTE_FLOOR = 0.80
+
+def _load_baseline():
+    import json
+    try: return json.load(open(BASELINE_PATH))
+    except Exception: return None
+
+def gate_check(scores: dict, update_baseline: bool = False) -> int:
+    import json
+    avg = {k: sum(v)/len(v) for k, v in scores.items() if v}
+    if update_baseline:
+        json.dump(avg, open(BASELINE_PATH, "w"), indent=2)
+        print(f"\n\U0001F4CC Baseline frozen -> {BASELINE_PATH}")
+        for k, v in avg.items(): print(f"   {k}: {v:.3f}")
+        return 0
+    baseline = _load_baseline()
+    print("\n" + "=" * 52 + "\nGATE RESULT\n" + "=" * 52)
+    failed = []
+    f = avg.get("faithfulness", 0)
+    if f < ABSOLUTE_FLOOR: failed.append(f"faithfulness {f:.3f} < floor {ABSOLUTE_FLOOR}")
+    if baseline:
+        for metric, base_val in baseline.items():
+            cur = avg.get(metric, 0); drop = base_val - cur
+            mark = "\u274C" if drop > REGRESSION_TOLERANCE else "\u2705"
+            print(f"  {mark} {metric:<22} {cur:.3f}  (baseline {base_val:.3f}, d{-drop:+.3f})")
+            if drop > REGRESSION_TOLERANCE: failed.append(f"{metric} regressed {base_val:.3f}->{cur:.3f}")
+    else:
+        print("  no baseline yet -- run with --set-baseline once happy")
+        for metric, val in avg.items(): print(f"     {metric:<22} {val:.3f}")
+    print("=" * 52)
+    if failed:
+        print("GATE FAILED:")
+        for x in failed: print(f"   - {x}")
+        return 1
+    print("GATE PASSED")
+    return 0
 
 
 if __name__ == "__main__":
