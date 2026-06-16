@@ -477,8 +477,8 @@ def _check_greeting(query: str) -> str | None:
 
 
 @router.post("/search", response_model=SearchResponse)
-@limiter.limit("20/minute")
-@limiter.limit("100/day")
+@limiter.limit("120/minute")
+@limiter.limit("5000/day")
 async def search(req: SearchRequest, request: Request, _: str = Depends(verify_api_key)):
 
     # ── Log query metadata to LangSmith ──────────────────────────
@@ -1441,8 +1441,8 @@ class SummariseResponse(BaseModel):
     error:          str = ""
 
 @router.post("/summarise", response_model=SummariseResponse)
-@limiter.limit("20/minute")
-@limiter.limit("100/day")
+@limiter.limit("120/minute")
+@limiter.limit("5000/day")
 async def summarise(req: SummariseRequest, request: Request, _: str = Depends(verify_api_key)):
     from pipeline.generator import summarise_document
     result = summarise_document(req.filename)
