@@ -1,0 +1,616 @@
+{
+  "_counts": {
+    "cities": 143,
+    "countries": 39,
+    "metros": 84
+  },
+  "_generated_from": "IBX_Latest.json",
+  "city_to_metro": {
+    "abidjan": "Abidjan",
+    "accra": "Accra",
+    "adelaide": "Adelaide",
+    "amsterdam": "Amsterdam",
+    "apodaca": "Monterrey",
+    "aschheim": "Munich",
+    "ashburn": "Washington DC",
+    "atlanta": "Atlanta",
+    "aubervilliers": "Paris",
+    "bangplee district": "Bangkok",
+    "barcelona": "Barcelona",
+    "barka": "Muscat",
+    "barueri": "Sao Paulo",
+    "basiglio": "Milan",
+    "billerica": "Boston",
+    "boca raton": "Miami",
+    "bogota": "Bogota",
+    "brampton": "Toronto",
+    "brisbane": "Brisbane",
+    "bromma": "Stockholm",
+    "bruges": "Bordeaux",
+    "burnaby": "Vancouver",
+    "calgary": "Calgary",
+    "canberra": "Canberra",
+    "carmona": "Manila",
+    "carteret": "New York",
+    "centennial": "Denver",
+    "chennai": "Chennai",
+    "chiba": "Tokyo",
+    "chicago": "Chicago",
+    "city of makati": "Manila",
+    "colon": "Mexico City",
+    "courbevoie": "Paris",
+    "culpeper": "Culpeper",
+    "cyberjaya": "Kuala Lumpur",
+    "dallas": "Dallas",
+    "doral": "Miami",
+    "dubai": "Dubai",
+    "dublin": "Dublin",
+    "dusseldorf": "Dusseldorf",
+    "el segundo": "Los Angeles",
+    "elk grove village": "Chicago",
+    "elmsford": "New York",
+    "englewood": "Denver",
+    "enschede": "Enschede",
+    "espoo": "Helsinki",
+    "frankfurt": "Frankfurt",
+    "frankfurt am main": "Frankfurt",
+    "gatineau": "Ottawa",
+    "geneva": "Geneva",
+    "genova": "Genoa",
+    "goyang-si gyeonggi-do": "Seoul",
+    "goyang-si, gyeonggi": "Seoul",
+    "hamburg": "Hamburg",
+    "helsinki": "Helsinki",
+    "herndon": "Washington DC",
+    "hong kong": "Hong Kong",
+    "houston": "Houston",
+    "irving": "Dallas",
+    "iskandar puteri": "Johor",
+    "istanbul": "Istanbul",
+    "jakarta": "Jakarta",
+    "jeddah": "Jeddah",
+    "johannesburg": "Johannesburg",
+    "kamloops": "Kamloops",
+    "kent": "Seattle",
+    "kuala lumpur": "Kuala Lumpur",
+    "kwai chung, n.t.": "Hong Kong",
+    "lagos": "Lagos",
+    "le lignon": "Geneva",
+    "lima": "Lima",
+    "lisbon": "Lisbon",
+    "london": "London",
+    "los angeles": "Los Angeles",
+    "madrid": "Madrid",
+    "manassas": "Washington DC",
+    "manchester": "Manchester",
+    "markham": "Toronto",
+    "masdar city": "Abu Dhabi",
+    "melbourne": "Melbourne",
+    "metropolitan city of milan": "Milan",
+    "meudon": "Paris",
+    "miami": "Miami",
+    "milan": "Milan",
+    "minoh city": "Osaka",
+    "morfelden waldorf": "Frankfurt",
+    "mumbai": "Mumbai",
+    "munich": "Munich",
+    "new york": "New York",
+    "newark": "New York",
+    "norcross": "Atlanta",
+    "north bergen": "New York",
+    "oberengstringen": "Zurich",
+    "osaka": "Osaka",
+    "palo alto": "Silicon Valley",
+    "pantin": "Paris",
+    "perth": "Perth",
+    "philadelphia": "Philadelphia",
+    "piscataway": "New York",
+    "plano": "Dallas",
+    "port harcourt": "Port Harcourt",
+    "pudahuel": "Santiago",
+    "richardson": "Dallas",
+    "rio de janeiro": "Rio de Janeiro",
+    "roissy": "Paris",
+    "saint denis": "Paris",
+    "saint john": "Saint John",
+    "saint laurent": "Montreal",
+    "saint-denis": "Paris",
+    "salalah": "Salalah",
+    "san jose": "Silicon Valley",
+    "santa clara": "Silicon Valley",
+    "santana de parnaiba": "Sao Paulo",
+    "santiago": "Santiago",
+    "sao paulo": "Sao Paulo",
+    "seattle": "Seattle",
+    "secaucus": "New York",
+    "seoul": "Seoul",
+    "settimo milanese": "Milan",
+    "sevilla": "Seville",
+    "shanghai": "Shanghai",
+    "singapore": "Singapore",
+    "slough": "London",
+    "sofia": "Sofia",
+    "spanga": "Stockholm",
+    "stockholm": "Stockholm",
+    "sunnyvale": "Silicon Valley",
+    "sydney": "Sydney",
+    "s\u00e3o jo\u00e3o de meriti": "Rio de Janeiro",
+    "tokyo": "Tokyo",
+    "toronto": "Toronto",
+    "torrance": "Los Angeles",
+    "tsuen wan, n.t.": "Hong Kong",
+    "vantaa": "Helsinki",
+    "vaudreuil-dorion": "Montreal",
+    "vienna": "Washington DC",
+    "waltham": "Boston",
+    "warsaw": "Warsaw",
+    "westmont": "Chicago",
+    "winnipeg": "Winnipeg",
+    "wollongong": "Sydney",
+    "zurich": "Zurich",
+    "zwolle": "Zwolle"
+  },
+  "country_flagship": {
+    "AE": "Dubai",
+    "AU": "Sydney",
+    "BG": "Sofia",
+    "BR": "Sao Paulo",
+    "CA": "Toronto",
+    "CH": "Zurich",
+    "CI": "Abidjan",
+    "CL": "Santiago",
+    "CN": "Shanghai",
+    "CO": "Bogota",
+    "DE": "Frankfurt",
+    "ES": "Madrid",
+    "FI": "Helsinki",
+    "FR": "Paris",
+    "GB": "London",
+    "GH": "Accra",
+    "HK": "Hong Kong",
+    "ID": "Jakarta",
+    "IE": "Dublin",
+    "IN": "Mumbai",
+    "IT": "Milan",
+    "JP": "Tokyo",
+    "KR": "Seoul",
+    "MX": "Mexico City",
+    "MY": "Johor",
+    "NG": "Lagos",
+    "NL": "Amsterdam",
+    "OM": "Salalah",
+    "PE": "Lima",
+    "PH": "Manila",
+    "PL": "Warsaw",
+    "PT": "Lisbon",
+    "SA": "Jeddah",
+    "SE": "Stockholm",
+    "SG": "Singapore",
+    "TH": "Bangkok",
+    "TR": "Istanbul",
+    "US": "Washington DC",
+    "ZA": "Johannesburg"
+  },
+  "metro_meta": {
+    "Abidjan": {
+      "code": "AB",
+      "iso": "CI",
+      "region": "EMEA"
+    },
+    "Abu Dhabi": {
+      "code": "AD",
+      "iso": "AE",
+      "region": "EMEA"
+    },
+    "Accra": {
+      "code": "AC",
+      "iso": "GH",
+      "region": "EMEA"
+    },
+    "Adelaide": {
+      "code": "AE",
+      "iso": "AU",
+      "region": "APAC"
+    },
+    "Amsterdam": {
+      "code": "AM",
+      "iso": "NL",
+      "region": "EMEA"
+    },
+    "Ashburn": {
+      "code": "AS",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Atlanta": {
+      "code": "AT",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Bangkok": {
+      "code": "BK",
+      "iso": "TH",
+      "region": "APAC"
+    },
+    "Barcelona": {
+      "code": "BA",
+      "iso": "ES",
+      "region": "EMEA"
+    },
+    "Bogota": {
+      "code": "BG",
+      "iso": "CO",
+      "region": "AMER"
+    },
+    "Bordeaux": {
+      "code": "BX",
+      "iso": "FR",
+      "region": "EMEA"
+    },
+    "Boston": {
+      "code": "BO",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Brisbane": {
+      "code": "BR",
+      "iso": "AU",
+      "region": "APAC"
+    },
+    "Calgary": {
+      "code": "CL",
+      "iso": "CA",
+      "region": "AMER"
+    },
+    "Canberra": {
+      "code": "CA",
+      "iso": "AU",
+      "region": "APAC"
+    },
+    "Chennai": {
+      "code": "CN",
+      "iso": "IN",
+      "region": "APAC"
+    },
+    "Chicago": {
+      "code": "CH",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Culpeper": {
+      "code": "CU",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Dallas": {
+      "code": "DA",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Denver": {
+      "code": "DE",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Dubai": {
+      "code": "DX",
+      "iso": "AE",
+      "region": "EMEA"
+    },
+    "Dublin": {
+      "code": "DB",
+      "iso": "IE",
+      "region": "EMEA"
+    },
+    "Dusseldorf": {
+      "code": "DU",
+      "iso": "DE",
+      "region": "EMEA"
+    },
+    "Enschede": {
+      "code": "EN",
+      "iso": "NL",
+      "region": "EMEA"
+    },
+    "Frankfurt": {
+      "code": "FR",
+      "iso": "DE",
+      "region": "EMEA"
+    },
+    "Geneva": {
+      "code": "GV",
+      "iso": "CH",
+      "region": "EMEA"
+    },
+    "Genoa": {
+      "code": "GN",
+      "iso": "IT",
+      "region": "EMEA"
+    },
+    "Hamburg": {
+      "code": "HH",
+      "iso": "DE",
+      "region": "EMEA"
+    },
+    "Helsinki": {
+      "code": "HE",
+      "iso": "FI",
+      "region": "EMEA"
+    },
+    "Hong Kong": {
+      "code": "HK",
+      "iso": "HK",
+      "region": "APAC"
+    },
+    "Houston": {
+      "code": "HO",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Istanbul": {
+      "code": "IL",
+      "iso": "TR",
+      "region": "EMEA"
+    },
+    "Jakarta": {
+      "code": "JK",
+      "iso": "ID",
+      "region": "APAC"
+    },
+    "Jeddah": {
+      "code": "JE",
+      "iso": "SA",
+      "region": "EMEA"
+    },
+    "Johannesburg": {
+      "code": "JN",
+      "iso": "ZA",
+      "region": "EMEA"
+    },
+    "Johor": {
+      "code": "JH",
+      "iso": "MY",
+      "region": "APAC"
+    },
+    "Kamloops": {
+      "code": "KA",
+      "iso": "CA",
+      "region": "AMER"
+    },
+    "Kuala Lumpur": {
+      "code": "KL",
+      "iso": "MY",
+      "region": "APAC"
+    },
+    "Lagos": {
+      "code": "LG",
+      "iso": "NG",
+      "region": "EMEA"
+    },
+    "Lima": {
+      "code": "LM",
+      "iso": "PE",
+      "region": "AMER"
+    },
+    "Lisbon": {
+      "code": "LS",
+      "iso": "PT",
+      "region": "EMEA"
+    },
+    "London": {
+      "code": "LD",
+      "iso": "GB",
+      "region": "EMEA"
+    },
+    "Los Angeles": {
+      "code": "LA",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Madrid": {
+      "code": "MD",
+      "iso": "ES",
+      "region": "EMEA"
+    },
+    "Manchester": {
+      "code": "MA",
+      "iso": "GB",
+      "region": "EMEA"
+    },
+    "Manila": {
+      "code": "MN",
+      "iso": "PH",
+      "region": "APAC"
+    },
+    "Melbourne": {
+      "code": "ME",
+      "iso": "AU",
+      "region": "APAC"
+    },
+    "Mexico City": {
+      "code": "MX",
+      "iso": "MX",
+      "region": "AMER"
+    },
+    "Miami": {
+      "code": "MI",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Milan": {
+      "code": "ML",
+      "iso": "IT",
+      "region": "EMEA"
+    },
+    "Monterrey": {
+      "code": "MO",
+      "iso": "MX",
+      "region": "AMER"
+    },
+    "Montreal": {
+      "code": "MT",
+      "iso": "CA",
+      "region": "AMER"
+    },
+    "Mumbai": {
+      "code": "MB",
+      "iso": "IN",
+      "region": "APAC"
+    },
+    "Munich": {
+      "code": "MU",
+      "iso": "DE",
+      "region": "EMEA"
+    },
+    "Muscat": {
+      "code": "MC",
+      "iso": "OM",
+      "region": "EMEA"
+    },
+    "New York": {
+      "code": "NY",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Osaka": {
+      "code": "OS",
+      "iso": "JP",
+      "region": "APAC"
+    },
+    "Ottawa": {
+      "code": "OT",
+      "iso": "CA",
+      "region": "AMER"
+    },
+    "Paris": {
+      "code": "PA",
+      "iso": "FR",
+      "region": "EMEA"
+    },
+    "Perth": {
+      "code": "PE",
+      "iso": "AU",
+      "region": "APAC"
+    },
+    "Philadelphia": {
+      "code": "PH",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Port Harcourt": {
+      "code": "PR",
+      "iso": "NG",
+      "region": "EMEA"
+    },
+    "Rio de Janeiro": {
+      "code": "RJ",
+      "iso": "BR",
+      "region": "AMER"
+    },
+    "Saint John": {
+      "code": "SJ",
+      "iso": "CA",
+      "region": "AMER"
+    },
+    "Salalah": {
+      "code": "SN",
+      "iso": "OM",
+      "region": "EMEA"
+    },
+    "Santiago": {
+      "code": "ST",
+      "iso": "CL",
+      "region": "AMER"
+    },
+    "Sao Paulo": {
+      "code": "SP",
+      "iso": "BR",
+      "region": "AMER"
+    },
+    "Seattle": {
+      "code": "SE",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Seoul": {
+      "code": "SL",
+      "iso": "KR",
+      "region": "APAC"
+    },
+    "Seville": {
+      "code": "SA",
+      "iso": "ES",
+      "region": "EMEA"
+    },
+    "Shanghai": {
+      "code": "SH",
+      "iso": "CN",
+      "region": "APAC"
+    },
+    "Silicon Valley": {
+      "code": "SV",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Singapore": {
+      "code": "SG",
+      "iso": "SG",
+      "region": "APAC"
+    },
+    "Sofia": {
+      "code": "SO",
+      "iso": "BG",
+      "region": "EMEA"
+    },
+    "Stockholm": {
+      "code": "SK",
+      "iso": "SE",
+      "region": "EMEA"
+    },
+    "Sydney": {
+      "code": "SY",
+      "iso": "AU",
+      "region": "APAC"
+    },
+    "Tokyo": {
+      "code": "TY",
+      "iso": "JP",
+      "region": "APAC"
+    },
+    "Toronto": {
+      "code": "TR",
+      "iso": "CA",
+      "region": "AMER"
+    },
+    "Vancouver": {
+      "code": "VA",
+      "iso": "CA",
+      "region": "AMER"
+    },
+    "Warsaw": {
+      "code": "WA",
+      "iso": "PL",
+      "region": "EMEA"
+    },
+    "Washington DC": {
+      "code": "DC",
+      "iso": "US",
+      "region": "AMER"
+    },
+    "Winnipeg": {
+      "code": "WI",
+      "iso": "CA",
+      "region": "AMER"
+    },
+    "Zurich": {
+      "code": "ZH",
+      "iso": "CH",
+      "region": "EMEA"
+    },
+    "Zwolle": {
+      "code": "ZW",
+      "iso": "NL",
+      "region": "EMEA"
+    }
+  }
+}
