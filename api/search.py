@@ -16,6 +16,7 @@ from pipeline.retriever import retrieve_chunks
 from pipeline.reranker  import rerank_chunks, build_context
 from pipeline.generator import generate_answer, prepare_query
 from pipeline.competitor_detector import detect_competitors
+from pipeline.metro_resolver import resolve_metro
 from langsmith import traceable
 
 log    = logging.getLogger(__name__)
@@ -41,6 +42,8 @@ class SearchRequest(BaseModel):
     user_agent: str       = Field(default="unknown")
     last_query:  str       = Field(default="")
     last_intent: str       = Field(default="")
+    country:     str       = Field(default="")
+    company:     str       = Field(default="")
 
 class Source(BaseModel):
     filename:        str
@@ -536,6 +539,7 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
     reranked      = pipeline_out["reranked"]
     detected_lang = pipeline_out["detected_lang"]
     _competitors = detect_competitors(req.query, get_config("competitor_signals", None))
+    _metro = resolve_metro(req.country, "")
 
     # Cache hit path
     if result.get("cache_hit") or result.get("semantic_hit"):
@@ -572,6 +576,9 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
                     resource_types    = pipeline_out.get("resource_types", []),
                     detected_workloads= pipeline_out.get("detected_workloads", []),
                     detected_competitors = _competitors,
+                    country = req.country,
+                    company = req.company,
+                    metro   = _metro,
                 )
             except Exception:
                 pass
@@ -676,6 +683,9 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
                 resource_types     = pipeline_out.get("resource_types", []),
                 detected_workloads = pipeline_out.get("detected_workloads", []),
                 detected_competitors = _competitors,
+                country = req.country,
+                company = req.company,
+                metro   = _metro,
             )
             print(f"📡 [BACKEND SUCCESS] Committed tracking step to DynamoDB for ID: {req.visitor_id}")
         except Exception as e:
@@ -1478,6 +1488,16 @@ async def analytics_stats(_: str = Depends(verify_api_key)):
     """Return search analytics — volume, cache rate, namespaces, languages."""
     from pipeline.analytics import get_stats
     return get_stats()
+
+@router.get("/analytics/regional-heatmap")
+async def regional_heatmap(_: str = Depends(verify_api_key)):
+    """Geo + company aggregation by metro/country/region/company."""
+    try:
+        from pipeline.heatmap_rollup import build_heatmap
+        return build_heatmap()
+    except Exception as e:
+        log.error("regional-heatmap error: %s", e)
+        return {"by_metro": {}, "by_country": {}, "by_region": {}, "by_company": {}, "totals": {"visitors": 0, "queries": 0}, "error": str(e)}
 
 
 @router.get("/visitor/{visitor_id}/history")

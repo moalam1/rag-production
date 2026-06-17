@@ -40,6 +40,9 @@ def log_query(
     resource_types:     list  = None,
     detected_workloads: list  = None,
     detected_competitors: list = None,
+    country:    str = "",
+    company:    str = "",
+    metro:      str = "",
 ) -> bool:
     if not visitor_id or visitor_id == "anonymous":
         return False
@@ -64,6 +67,9 @@ def log_query(
             "resource_types":      __import__('json').dumps(resource_types or []),
             "detected_workloads":  __import__('json').dumps(detected_workloads or []),
             "detected_competitors": detected_competitors or [],
+            "country":  country or "",
+            "company":  company or "",
+            "metro":    metro or "",
             "expires_at":     expires_at,
         })
         log.debug(f"Episodic: logged for visitor {visitor_id[:8]}")
