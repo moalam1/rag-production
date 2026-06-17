@@ -1489,6 +1489,16 @@ async def analytics_stats(_: str = Depends(verify_api_key)):
     from pipeline.analytics import get_stats
     return get_stats()
 
+@router.get("/analytics/regional-heatmap")
+async def regional_heatmap(_: str = Depends(verify_api_key)):
+    """Geo + company aggregation by metro/country/region/company."""
+    try:
+        from pipeline.heatmap_rollup import build_heatmap
+        return build_heatmap()
+    except Exception as e:
+        log.error("regional-heatmap error: %s", e)
+        return {"by_metro": {}, "by_country": {}, "by_region": {}, "by_company": {}, "totals": {"visitors": 0, "queries": 0}, "error": str(e)}
+
 
 @router.get("/visitor/{visitor_id}/history")
 async def visitor_history(visitor_id: str, _: str = Depends(verify_api_key)):
