@@ -51,6 +51,12 @@ for vid, queries in visitors.items():
         email = identity_records[0].get("email","") if identity_records else ""
         company = identity_records[0].get("company","") if identity_records else ""
         country = identity_records[0].get("country","") if identity_records else ""
+        # Source 2 fallback: derive company from work-email domain when the form
+        # company is blank. Skip personal-email providers.
+        if not company and email and "@" in email:
+            _dom = email.split("@")[1].lower().strip()
+            if _dom and _dom not in ("gmail.com","yahoo.com","hotmail.com","outlook.com","icloud.com","aol.com","proton.me","protonmail.com"):
+                company = _dom
 
         # Build query history (exclude identity capture records)
         search_queries = [q for q in queries if q.get("intent","") != "identity_capture"]
