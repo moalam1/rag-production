@@ -5,6 +5,8 @@ import logging
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel, Field
+from api.models import (SearchRequest, Source, SearchResponse,
+                        IdentifyRequest, SummariseRequest, SummariseResponse)
 
 from config import settings
 from limiter import limiter
@@ -32,49 +34,6 @@ def verify_api_key(key: str = Depends(api_key_header)):
 
 
 # ── Request / Response models ─────────────────────────────────────
-
-class SearchRequest(BaseModel):
-    query:      str       = Field(..., min_length=1, max_length=1000)
-    top_k:      int       = Field(5, ge=1, le=10)
-    visitor_id: str       = Field(default="v_prod_guest")
-    namespace:  str       = Field(default="all")
-    source:     str       = Field(default="api")
-    user_agent: str       = Field(default="unknown")
-    last_query:  str       = Field(default="")
-    last_intent: str       = Field(default="")
-    country:     str       = Field(default="")
-    company:     str       = Field(default="")
-
-class Source(BaseModel):
-    filename:        str
-    clean_name:      str
-    page:            str
-    pdf_url:         str
-    page_url:        str = ""
-    resource_type:   str = ""
-    preview:         str
-    relevance_score: float
-
-class SearchResponse(BaseModel):
-    query:     str
-    answer:    str
-    sources:   list[Source]
-    followups: list[str]
-    blocked:   bool = False
-    cached:    bool = False
-    # Intent fields
-    intent:            str       = "general"
-    detected_products: list[str] = []
-    detected_use_case: str       = ""
-    rewritten_query:   str       = ""
-    confidence:        float     = 0.0
-    inherited:         bool      = False
-    similarity:        float     = 0.0
-    visitor_history:   list      = []
-    lead_quality_tag:  str       = "EARLY_EXPLORER"
-    resource_types:    list[str] = []
-    detected_workloads: list[str] = []
-
 
 # ── Endpoints ──────────────────────────────────────────────────────
 
@@ -860,15 +819,6 @@ async def visitor_profiles_analytics(_: str = Depends(verify_api_key)):
 
 
 
-class IdentifyRequest(BaseModel):
-    visitor_id: str
-    email:      str
-    name:       str = ""
-    source:     str = "commercial_nudge"
-    products:   str = ""
-    company:    str = ""
-    country:    str = ""
-
 @router.post("/visitor/identify")
 async def identify_visitor(req: IdentifyRequest, _: str = Depends(verify_api_key)):
     try:
@@ -1071,215 +1021,6 @@ async def health():
     return {"status": "ok", "environment": settings.ENVIRONMENT}
 
 
-@router.get("/analytics/population-trends")
-async def population_trends(_: str = Depends(verify_api_key)):
-    """Cross-visitor analytics: affinity, conversion velocity, content gaps."""
-    try:
-        import boto3
-        from collections import Counter, defaultdict
-        import json as _j
-
-        client  = boto3.client("dynamodb", region_name="us-east-1")
-        pages   = client.get_paginator("scan").paginate(TableName="rag-episodic")
-        visitors = defaultdict(list)
-        all_q    = []
-
-        for page in pages:
-            for item in page["Items"]:
-                vid = item.get("visitor_id", {}).get("S", "")
-                if not vid or vid.startswith(("v_test","v_debug")): continue
-                q = {k: list(v.values())[0] for k, v in item.items()}
-                visitors[vid].append(q)
-                all_q.append(q)
-
-        # Product affinity pairs
-        pairs = []
-        for vid, qs in visitors.items():
-            prods = set()
-            for q in qs:
-                try: prods.update(_j.loads(q.get("products","[]")) if isinstance(q.get("products"),str) else (q.get("products") or []))
-                except: pass
-            if len(prods) >= 2:
-                sp = sorted(prods)
-                for i in range(len(sp)):
-                    for j in range(i+1, len(sp)):
-                        pairs.append(f"{sp[i]} + {sp[j]}")
-
-        tv = len(visitors)
-        affinity = {k: round(v/tv*100,1) for k,v in Counter(pairs).most_common(10)} if tv else {}
-
-        # Lead distribution
-        tags = [q.get("lead_quality_tag","EARLY_EXPLORER") for q in all_q if q.get("lead_quality_tag")]
-        lead_dist = dict(Counter(tags))
-
-        # Content gaps — dead-end queries
-        dead_queries = [q.get("query","") for q in all_q if q.get("lead_quality_tag") == "DEAD_END_SUPPORT"]
-        gap_kw = Counter()
-        stopwords = {"what","does","equinix","about","have","their","with","from","this","that","how","the","and","for"}
-        for q in dead_queries:
-            for w in q.lower().split():
-                if len(w) > 4 and w not in stopwords: gap_kw[w] += 1
-
-        return {
-            "total_visitors":    tv,
-            "total_queries":     len(all_q),
-            "product_affinity":  affinity,
-            "lead_distribution": lead_dist,
-            "content_gaps":      dict(gap_kw.most_common(15)),
-            "dead_end_count":    len(dead_queries),
-            "generated_at":      __import__("datetime").datetime.utcnow().isoformat(),
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    return {"status": "ok", "environment": settings.ENVIRONMENT}
-
-@router.get("/visitor/{visitor_id}/suggestions")
-async def visitor_suggestions(visitor_id: str, _: str = Depends(verify_api_key)):
-    """Return personalised query suggestions based on visitor history."""
-    try:
-        from pipeline.episodic_memory import get_visitor_context
-        context = get_visitor_context(visitor_id)
-        suggestions = _generate_suggestions(context)
-        return {
-            "suggestions":   suggestions,
-            "personalised":  len(context.get("interests", [])) > 0,
-            "stage":         context.get("stage", "awareness"),
-            "query_count":   context.get("query_count", 0),
-        }
-    except Exception as e:
-        log.warning(f"Suggestions error: {e}")
-        return {"suggestions": _default_suggestions(), "personalised": False}
-
-
-def _default_suggestions() -> list[dict]:
-    return [
-        {"icon": "💡", "text": "What is Equinix Fabric and how does it work?",       "intent": "learn_concept"},
-        {"icon": "📊", "text": "What port speeds and SLAs does Equinix Fabric support?", "intent": "evaluate_specs"},
-        {"icon": "⚖️",  "text": "Equinix Fabric vs Network Edge for SD-WAN deployment", "intent": "compare"},
-        {"icon": "📄", "text": "Show me a hybrid multicloud networking blueprint",    "intent": "find_resource"},
-    ]
-
-
-def _generate_suggestions(context: dict) -> list[dict]:
-    intents     = context.get("intents", [])
-    products    = context.get("interests", [])
-    stage       = context.get("stage", "awareness")
-    last_intent = context.get("last_intent", "")
-    last_query  = context.get("last_query", "")
-
-    # New visitor — return defaults
-    if not intents or not products:
-        return _default_suggestions()
-
-    suggestions = []
-    used_intents = set()
-    p0 = products[0] if products else "Equinix Fabric"
-    # Shorten long product names for card display
-    p0_short = p0.replace("Equinix Fabric Cloud Router", "Fabric Cloud Router")
-
-    # ── Rule 1: Continue the thread ───────────────────────────────────────────
-    if last_intent == "learn_concept" and "evaluate_specs" not in intents:
-        suggestions.append({
-            "icon": "📊",
-            "text": f"What are the technical specifications for {p0_short}?",
-            "intent": "evaluate_specs",
-            "rule": "continue"
-        })
-        used_intents.add("evaluate_specs")
-
-    elif last_intent == "evaluate_specs" and "compare" not in intents:
-        suggestions.append({
-            "icon": "⚖️",
-            "text": f"How does {p0_short} compare to Network Edge?",
-            "intent": "compare",
-            "rule": "continue"
-        })
-        used_intents.add("compare")
-
-    elif last_intent == "compare" and "find_resource" not in intents:
-        suggestions.append({
-            "icon": "📄",
-            "text": f"Show me a {p0_short} deployment blueprint",
-            "intent": "find_resource",
-            "rule": "continue"
-        })
-        used_intents.add("find_resource")
-
-    elif last_intent == "find_resource" and stage in ("evaluation", "intent"):
-        suggestions.append({
-            "icon": "🎯",
-            "text": f"What does an enterprise {p0_short} rollout look like?",
-            "intent": "find_resource",
-            "rule": "commercial"
-        })
-        used_intents.add("find_resource")
-
-    # ── Rule 2: Fill the product gap ──────────────────────────────────────────
-    ALL_CORE = ["Equinix Fabric", "Network Edge", "Equinix Metal",
-                "Equinix Fabric Cloud Router", "Internet Access"]
-    unseen = [p for p in ALL_CORE if p not in products]
-    if unseen and len(suggestions) < 3 and "compare" not in used_intents:
-        p1_short = unseen[0].replace("Equinix Fabric Cloud Router", "Fabric Cloud Router")
-        suggestions.append({
-            "icon": "⚖️",
-            "text": f"{p0_short} vs {p1_short} — what's the difference?",
-            "intent": "compare",
-            "rule": "gap"
-        })
-        used_intents.add("compare")
-
-    # ── Rule 3: Stage advancement ─────────────────────────────────────────────
-    if stage == "consideration" and len(suggestions) < 3:
-        if "evaluate_specs" not in used_intents:
-            suggestions.append({
-                "icon": "📊",
-                "text": f"What SLAs and performance guarantees does {p0_short} offer?",
-                "intent": "evaluate_specs",
-                "rule": "stage"
-            })
-            used_intents.add("evaluate_specs")
-
-    elif stage in ("evaluation", "intent") and len(suggestions) < 3:
-        if "find_resource" not in used_intents:
-            suggestions.append({
-                "icon": "🏗️",
-                "text": f"Show me a {p0_short} enterprise deployment case study",
-                "intent": "find_resource",
-                "rule": "stage"
-            })
-            used_intents.add("find_resource")
-
-    # ── Rule 4: Always one generic broadening card ────────────────────────────
-    # Pick a topic the visitor hasn't explored
-    broadening = [
-        {"icon": "🏢", "text": "What is colocation and why use Equinix IBX?",     "intent": "learn_concept"},
-        {"icon": "☁️",  "text": "How does Equinix Fabric connect to AWS and Azure?", "intent": "learn_concept"},
-        {"icon": "🔀", "text": "What are Equinix Fabric Cloud Router capabilities?", "intent": "evaluate_specs"},
-        {"icon": "🏦", "text": "Show me a financial services case study for Equinix", "intent": "find_resource"},
-        {"icon": "💡", "text": "What is Equinix Metal bare-metal infrastructure?",  "intent": "learn_concept"},
-    ]
-    # Pick one not already covered by visitor history
-    for b in broadening:
-        text_lower = b["text"].lower()
-        already_seen = any(
-            p.lower().replace("equinix ", "") in text_lower
-            for p in products)
-        if not already_seen or len(suggestions) >= 3:
-            suggestions.append({**b, "rule": "broadening"})
-            break
-
-    # Pad to 4 with defaults if needed
-    defaults = _default_suggestions()
-    for d in defaults:
-        if len(suggestions) >= 4:
-            break
-        if d["intent"] not in used_intents:
-            suggestions.append(d)
-
-    return suggestions[:4]
-
-
 @router.get("/visitor/{visitor_id}/suggestions")
 async def visitor_suggestions(visitor_id: str, _: str = Depends(verify_api_key)):
     """Return personalised query suggestions based on visitor history."""
@@ -1445,18 +1186,6 @@ async def clear_cache(_: str = Depends(verify_api_key)):
 
 
 # ── Summarise endpoint ────────────────────────────────────────────
-
-class SummariseRequest(BaseModel):
-    filename: str = Field(..., min_length=1, max_length=500)
-
-class SummariseResponse(BaseModel):
-    filename:       str
-    summary:        str = ""
-    key_topics:     list[str] = []
-    suggested_name: str = ""
-    suggested_type: str = ""
-    cached:         bool = False
-    error:          str = ""
 
 @router.post("/summarise", response_model=SummariseResponse)
 @limiter.limit("120/minute")
