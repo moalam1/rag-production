@@ -866,6 +866,8 @@ class IdentifyRequest(BaseModel):
     name:       str = ""
     source:     str = "commercial_nudge"
     products:   str = ""
+    company:    str = ""
+    country:    str = ""
 
 @router.post("/visitor/identify")
 async def identify_visitor(req: IdentifyRequest, _: str = Depends(verify_api_key)):
@@ -886,6 +888,8 @@ async def identify_visitor(req: IdentifyRequest, _: str = Depends(verify_api_key
             "source":           req.source,
             "products":         req.products,
             "lead_quality_tag": "SOLID_LEAD_COMMERCIAL",
+            "company":          req.company or "",
+            "country":          req.country or "",
         })
 
         log.info("Identity captured: visitor=%s email=%s", req.visitor_id, req.email)
