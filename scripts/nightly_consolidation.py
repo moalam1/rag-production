@@ -49,6 +49,8 @@ for vid, queries in visitors.items():
         identity_records = [q for q in queries if q.get("intent","") == "identity_capture"]
         name  = identity_records[0].get("name","")  if identity_records else ""
         email = identity_records[0].get("email","") if identity_records else ""
+        company = identity_records[0].get("company","") if identity_records else ""
+        country = identity_records[0].get("country","") if identity_records else ""
 
         # Build query history (exclude identity capture records)
         search_queries = [q for q in queries if q.get("intent","") != "identity_capture"]
@@ -130,6 +132,8 @@ Example output:
                 "query_count":  str(len(search_queries)),
                 "name":         name,
                 "email":        email,
+                "company":      company,
+                "country":      country,
                 "identified":   "true" if (name or email) else "false",
                 "updated_at":   datetime.now(timezone.utc).isoformat(),
             }
