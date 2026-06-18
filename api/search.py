@@ -1503,6 +1503,16 @@ async def regional_heatmap(_: str = Depends(verify_api_key)):
         log.error("regional-heatmap error: %s", e)
         return {"by_metro": {}, "by_country": {}, "by_region": {}, "by_company": {}, "totals": {"visitors": 0, "queries": 0}, "error": str(e)}
 
+@router.get("/analytics/competitive-signals")
+async def competitive_signals(_: str = Depends(verify_api_key)):
+    """Competitor mentions by competitor / company / product, from episodic."""
+    try:
+        from pipeline.competitive_rollup import build_competitive
+        return build_competitive()
+    except Exception as e:
+        log.error("competitive-signals analytics error: %s", e)
+        return {"by_competitor": {}, "by_company": {}, "by_product": {}, "recent": [], "total_mentions": 0, "error": str(e)}
+
 
 @router.get("/visitor/{visitor_id}/history")
 async def visitor_history(visitor_id: str, _: str = Depends(verify_api_key)):
