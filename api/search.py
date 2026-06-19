@@ -7,6 +7,8 @@ from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel, Field
 from api.models import (SearchRequest, Source, SearchResponse,
                         IdentifyRequest, SummariseRequest, SummariseResponse)
+from api.deps import (verify_api_key, api_key_header, get_config,
+                      _load_config, invalidate_config)
 
 from config import settings
 from limiter import limiter
@@ -24,13 +26,7 @@ from langsmith import traceable
 log    = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["search"])
 
-# ── API key auth ──────────────────────────────────────────────────
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-def verify_api_key(key: str = Depends(api_key_header)):
-    if settings.API_KEY and key != settings.API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return key
+# api_key_header + verify_api_key -> api/deps.py
 
 
 # ── Request / Response models ─────────────────────────────────────
@@ -56,47 +52,7 @@ def _classify_lead(intent, products, resource_types, stage, query):
     return "EARLY_EXPLORER"
 
 
-# ── Dynamic config from DynamoDB rag-config ─────────────────
-import threading as _threading
-import time as _time
-
-_config_cache      = {}
-_config_lock       = _threading.Lock()
-_config_loaded_at  = 0
-_CONFIG_TTL        = 300  # refresh every 5 minutes
-
-def _load_config() -> dict:
-    """Load all 4 config categories from rag-config DynamoDB table."""
-    global _config_cache, _config_loaded_at
-    now = _time.time()
-    if _config_cache and (now - _config_loaded_at) < _CONFIG_TTL:
-        return _config_cache
-    with _config_lock:
-        if _config_cache and (now - _config_loaded_at) < _CONFIG_TTL:
-            return _config_cache
-        try:
-            import boto3 as _b3
-            _ddb   = _b3.resource("dynamodb", region_name="us-east-1")
-            _table = _ddb.Table("rag-config")
-            keys   = ["workload_signals","product_signals",
-                      "commercial_keywords","workload_badge_styles"]
-            loaded = {}
-            for k in keys:
-                resp = _table.get_item(Key={"config_key": k})
-                if "Item" in resp:
-                    loaded[k] = resp["Item"].get("data", {})
-            if loaded:
-                _config_cache     = loaded
-                _config_loaded_at = now
-                log.info("rag-config loaded from DynamoDB: %s", list(loaded.keys()))
-        except Exception as _ce:
-            log.warning("rag-config load failed — using hardcoded fallback: %s", _ce)
-    return _config_cache
-
-def get_config(key: str, fallback):
-    """Get a config value, falling back to hardcoded if DynamoDB unavailable."""
-    cfg = _load_config()
-    return cfg.get(key, fallback)
+# dynamic config (_load_config/get_config + cache) -> api/deps.py
 
 # WORKLOAD_SIGNALS — loaded from rag-config DynamoDB (refreshed every 5 min)
 # To add new workloads: update rag-config table, no code deploy needed
@@ -905,8 +861,7 @@ async def admin_put_config(config_key: str, body: dict,
         },
     )
     # Bust the in-process config cache so it reloads next request
-    global _config_loaded_at
-    _config_loaded_at = 0
+    invalidate_config()
     log.info("admin: rag-config %s updated (%s items)", config_key,
              len(data) if isinstance(data, (list, dict)) else 1)
     return {"ok": True, "config_key": config_key}
@@ -1011,7 +966,7 @@ async def admin_put_prompt_v2(pid: str, body: dict, _: str = Depends(verify_api_
                      "updated_at": _dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M"),
                      "description": _PROMPT_META[pid]["label"]})
     from pipeline.prompt_registry import bust as _bust; _bust()
-    global _config_loaded_at; _config_loaded_at = 0
+    invalidate_config()
     log.warning("admin: prompt#%s saved → v%s (%s chars)", pid, new_v, len(prompt))
     return {"ok": True, "id": pid, "version": new_v, "note": _PROMPT_META[pid]["note"]}
 
