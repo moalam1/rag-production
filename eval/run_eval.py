@@ -37,7 +37,7 @@ from openai import OpenAI
 API_URL   = os.getenv("API_GATEWAY_URL", "https://lxhxqqh3r8.execute-api.us-east-1.amazonaws.com")
 API_KEY   = os.getenv("API_KEY", "")
 LS_CLIENT = Client()
-OAI       = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+OAI       = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=30.0, max_retries=2)
 
 DATASET_NAME = "equinix-rag-gold-set-v1"
 GOLD_FILE    = os.path.join(os.path.dirname(__file__), "gold_set.json")
