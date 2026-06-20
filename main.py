@@ -16,6 +16,7 @@ from api.ingest import router as ingest_router
 from api.feedback import router as feedback_router
 from api.routes.analytics import router as analytics_router
 from api.routes.admin import router as admin_router
+from api.routes.system import router as system_router
 
 # ── Logging ───────────────────────────────────────────────────────
 logging.basicConfig(
@@ -50,6 +51,7 @@ if os.path.exists("static"):
 app.include_router(search_router)
 app.include_router(analytics_router)
 app.include_router(admin_router)
+app.include_router(system_router)
 app.include_router(ingest_router,  prefix="/api/v1")
 app.include_router(feedback_router, prefix="/api/v1")
 
