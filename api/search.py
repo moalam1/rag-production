@@ -659,30 +659,8 @@ async def identify_visitor(req: IdentifyRequest, _: str = Depends(verify_api_key
 
 
 
-@router.get("/config/badge-styles")
-async def badge_styles(_: str = Depends(verify_api_key)):
-    """Return workload badge styles from rag-config — used by HF Space UI."""
-    styles = get_config("workload_badge_styles", {
-        "Distributed AI":        {"icon":"🤖","bg":"#0c2340","color":"#93c5fd"},
-        "AI & Machine Learning": {"icon":"🤖","bg":"#0c2340","color":"#93c5fd"},
-        "SD-WAN":                {"icon":"🔀","bg":"#1a1200","color":"#fcd34d"},
-        "Hybrid Multicloud":     {"icon":"☁️", "bg":"#0a1628","color":"#60a5fa"},
-        "Financial Services":    {"icon":"🏦","bg":"#0a1a0a","color":"#86efac"},
-        "Network Modernization": {"icon":"🔧","bg":"#1a0a1a","color":"#d8b4fe"},
-        "Colocation":            {"icon":"🏢","bg":"#1a1a0a","color":"#fde68a"},
-        "Interconnection":       {"icon":"🔗","bg":"#0f1a1a","color":"#5eead4"},
-    })
-    return {"badge_styles": styles}
-
-
-
 # ════════ Admin console endpoints ════════════════════════════
 # admin endpoints + _ADMIN_CONFIG_KEYS + _PROMPT_META -> api/routes/admin.py
-
-
-@router.get("/health")
-async def health():
-    return {"status": "ok", "environment": settings.ENVIRONMENT}
 
 
 @router.get("/visitor/{visitor_id}/suggestions")
@@ -833,22 +811,6 @@ def _generate_suggestions(context: dict) -> list[dict]:
 
 
 
-@router.get("/cache/stats")
-async def cache_stats(_: str = Depends(verify_api_key)):
-    from cache.factory import cache
-    c = cache()
-    if hasattr(c, "stats"):
-        return c.stats()
-    return {"message": "Stats not available for this backend"}
-
-
-@router.delete("/cache")
-async def clear_cache(_: str = Depends(verify_api_key)):
-    from cache.factory import cache
-    cache().clear()
-    return {"message": "Cache cleared"}
-
-
 # ── Summarise endpoint ────────────────────────────────────────────
 
 @router.post("/summarise", response_model=SummariseResponse)
@@ -860,17 +822,6 @@ async def summarise(req: SummariseRequest, request: Request, _: str = Depends(ve
     if "error" in result:
         return SummariseResponse(filename=req.filename, error=result["error"])
     return SummariseResponse(**result)
-
-
-@router.get("/registry")
-async def list_registry(_: str = Depends(verify_api_key)):
-    """List all documents in the DynamoDB registry."""
-    from pipeline.registry import list_documents
-    docs = list_documents()
-    return {
-        "total": len(docs),
-        "documents": docs,
-    }
 
 
 @router.get("/visitor/{visitor_id}/history")
