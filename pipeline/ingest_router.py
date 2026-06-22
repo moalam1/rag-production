@@ -26,6 +26,7 @@ from llama_index.vector_stores.pinecone import PineconeVectorStore
 
 from config import settings
 from pipeline.page_parser import ParsedPage, PDF_TYPES, VIDEO_TYPES
+from pipeline.ingester import NAMESPACE_MAP
 from pipeline.registry import (
     is_unchanged,
     is_unchanged_by_timestamp,
@@ -45,23 +46,7 @@ _pc      = Pinecone(api_key=settings.PINECONE_API_KEY)
 _index   = _pc.Index(settings.PINECONE_INDEX)
 _summary = _pc.Index(settings.PINECONE_SUMMARY_INDEX)
 
-NAMESPACE_MAP = {
-    "whitepaper":       "technical",
-    "blueprint":        "technical",
-    "analyst-report":   "technical",
-    "data-sheet":       "technical",
-    "playbook":         "technical",
-    "case-study":       "business",
-    "solution-brief":   "business",
-    "article":          "business",
-    "media":            "business",
-    "multimedia":       "media",
-    "webinar":          "media",
-    "infopaper":        "technical",
-    "product-document": "technical",
-    "infographic":      "business",
-    "success-story":    "business",
-}
+# NAMESPACE_MAP imported from pipeline.ingester (single source of truth)
 
 FETCH_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
