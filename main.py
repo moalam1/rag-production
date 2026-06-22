@@ -11,7 +11,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from config import settings
-from api.search import router as search_router
+from api.routes.search import router as search_router
 from api.ingest import router as ingest_router
 from api.feedback import router as feedback_router
 from api.routes.analytics import router as analytics_router
