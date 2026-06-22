@@ -45,7 +45,8 @@ _pc    = Pinecone(api_key=settings.PINECONE_API_KEY)
 _index = _pc.Index(settings.PINECONE_INDEX)
 
 RETRIEVAL_CACHE_TTL = min(settings.CACHE_TTL_SECONDS, 3600)  # 1hr max — retrieval cache
-ALL_NAMESPACES      = ["technical", "business", "media"]
+from api.deps import resolve_section_namespaces
+ALL_NAMESPACES      = resolve_section_namespaces("all")  # config-derived (grandfather fallback = the legacy 3)
 RRF_K               = 60    # standard RRF constant
 ALPHA               = 0.7   # semantic weight; 1-ALPHA = lexical weight
 
@@ -313,11 +314,7 @@ def retrieve_chunks(
     # Use intent top_k if provided, else settings default
     effective_top_k = top_k if top_k else settings.TOP_K_RETRIEVE
 
-    namespaces_to_query = (
-        [namespace.strip()]
-        if namespace and namespace.strip().lower() not in ("", "all")
-        else ALL_NAMESPACES
-    )
+    namespaces_to_query = resolve_section_namespaces(namespace)
     log.debug("Querying namespaces: %s", namespaces_to_query)
 
     # 1. Semantic — Pinecone ANN

@@ -47,7 +47,8 @@ def _load_config() -> dict:
             _ddb   = _b3.resource("dynamodb", region_name="us-east-1")
             _table = _ddb.Table("rag-config")
             keys   = ["workload_signals", "product_signals",
-                      "commercial_keywords", "workload_badge_styles"]
+                      "commercial_keywords", "workload_badge_styles",
+                      "sections"]
             loaded = {}
             for k in keys:
                 resp = _table.get_item(Key={"config_key": k})
@@ -72,3 +73,30 @@ def invalidate_config():
     """Bust the in-process config cache so it reloads on the next get_config."""
     global _config_loaded_at
     _config_loaded_at = 0
+
+
+# ── Section → namespace resolution (Option B; grandfather model) ──────────────
+# resources is grandfathered to its 3 legacy type-namespaces; new sections get
+# their own single namespace. A "section" maps to a LIST of namespaces.
+_SECTIONS_FALLBACK = {
+    "resources": {"namespaces": ["technical", "business", "media"], "source_type": "sitemap"},
+}
+
+
+def resolve_section_namespaces(section: str = None) -> list:
+    """Resolve a section name -> its Pinecone namespace list.
+    None / "" / "all" -> union of every section's namespaces.
+    A known section name -> that section's namespaces.
+    Anything else -> [section] (back-compat: a literal namespace passed directly).
+    """
+    sections = get_config("sections", _SECTIONS_FALLBACK)
+    if not section or section.strip().lower() in ("", "all"):
+        out, seen = [], set()
+        for s in sections.values():
+            for ns in s.get("namespaces", []):
+                if ns not in seen:
+                    out.append(ns); seen.add(ns)
+        return out
+    if section in sections:
+        return sections[section].get("namespaces", [])
+    return [section.strip()]
