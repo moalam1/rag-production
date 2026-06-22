@@ -25,7 +25,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.search import verify_api_key
+from api.deps import verify_api_key
 from pipeline.ingester import ingest
 
 log    = logging.getLogger(__name__)
