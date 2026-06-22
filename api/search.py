@@ -431,12 +431,13 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
     # 1. Input guardrails
     passed, message = input_grad.run(req.query)
     if not passed:
+        # Input blocked before any pipeline ran — return defaults (no pipeline_out yet)
         return SearchResponse(
             query=req.query, answer=message,
             sources=[], followups=[], blocked=True,
-            lead_quality_tag   = pipeline_out.get("lead_quality_tag", "EARLY_EXPLORER"),
-            resource_types     = pipeline_out.get("resource_types", []),
-            detected_workloads = pipeline_out.get("detected_workloads", []),
+            lead_quality_tag   = "EARLY_EXPLORER",
+            resource_types     = [],
+            detected_workloads = [],
         )
 
     source = getattr(req, "source", "") or "api"
