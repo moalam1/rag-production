@@ -153,11 +153,14 @@ def get_sitemap_stats() -> dict:
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
-def _fetch_sitemap_urls() -> tuple[list[str], list[str]]:
-    """Fetch and parse sitemap-resources.xml. Returns (urls, errors)."""
+def _fetch_sitemap_urls(sitemap_url: str = SITEMAP_URL) -> tuple[list[str], list[str]]:
+    """Fetch and parse a sitemap XML. Returns (urls, errors).
+    sitemap_url defaults to the resources sitemap (back-compat); callers can
+    pass any sitemap (e.g. sitemap-core.xml) for other sections.
+    """
     try:
         with httpx.Client(headers=HEADERS, timeout=30, follow_redirects=True) as client:
-            resp = client.get(SITEMAP_URL)
+            resp = client.get(sitemap_url)
             resp.raise_for_status()
 
         root     = ET.fromstring(resp.text)
