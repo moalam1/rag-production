@@ -1,10 +1,10 @@
 """
-scripts/rebuild_bm25.py — Rebuild BM25 index from Pinecone and persist to Redis.
+scripts/rebuild_bm25.py — Rebuild BM25 index from Pinecone and persist to S3.
 
 Run this after:
   - Full seed run completes
   - Nightly crawl adds significant new content
-  - Redis cache expires (7 day TTL)
+  - BM25 corpus changes (re-run to refresh the S3 snapshot)
 
 Usage:
   /usr/bin/python3.11 scripts/rebuild_bm25.py
@@ -17,7 +17,7 @@ log = logging.getLogger("rebuild_bm25")
 
 from pipeline.retriever import (
     _index, ALL_NAMESPACES, _LATEST_FILTER,
-    _parse_match, _build_bm25_index, BM25_REDIS_KEY, _get_redis_binary
+    _parse_match, _build_bm25_index, BM25_S3_BUCKET, BM25_S3_KEY, _s3_client
 )
 
 def main():
@@ -50,14 +50,13 @@ def main():
     # Build and persist
     _build_bm25_index(all_chunks)
 
-    # Verify Redis
-    r    = _get_redis_binary()
-    data = r.get(BM25_REDIS_KEY)
-    if data:
-        log.info("✅ Verified in Redis — %s KB compressed", round(len(data)/1024, 1))
-        log.info("TTL: %d seconds", r.ttl(BM25_REDIS_KEY))
-    else:
-        log.error("❌ Redis verification failed")
+    # Verify S3
+    try:
+        head = _s3_client().head_object(Bucket=BM25_S3_BUCKET, Key=BM25_S3_KEY)
+        log.info("✅ Verified in S3 s3://%s/%s — %s KB",
+                 BM25_S3_BUCKET, BM25_S3_KEY, round(head["ContentLength"]/1024, 1))
+    except Exception as e:
+        log.error("❌ S3 verification failed: %s", e)
 
     log.info("Done in %.1f seconds", time.time() - t0)
 

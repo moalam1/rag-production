@@ -58,20 +58,18 @@ _bm25_index  = None
 _bm25_chunks = []
 _bm25_built  = False
 
-# Redis key for persisted BM25 index
-BM25_REDIS_KEY = "rag:bm25:index"
-BM25_REDIS_TTL = 86400 * 7   # 7 days TTL
+# S3 location for persisted BM25 index (serverless — replaces Redis)
+BM25_S3_BUCKET = settings.BM25_S3_BUCKET
+BM25_S3_KEY    = "bm25/index.pkl"
+
+
+def _s3_client():
+    import boto3
+    return boto3.client("s3", region_name="us-east-1")
 
 
 def _tokenise(text):
     return text.lower().split()
-
-
-def _get_redis_binary():
-    """Redis connection in binary mode for pickle storage."""
-    import redis as redis_lib
-    from config import settings
-    return redis_lib.from_url(settings.REDIS_URL, decode_responses=False)
 
 
 def _serialize_bm25(index, chunks) -> bytes:
@@ -88,7 +86,7 @@ def _deserialize_bm25(data: bytes):
 
 
 def _build_bm25_index(chunks):
-    """Build BM25 index from chunks, persist to Redis, update in-memory state."""
+    """Build BM25 index from chunks, persist to S3, update in-memory state."""
     global _bm25_index, _bm25_chunks, _bm25_built
     if not chunks:
         log.warning("BM25: no chunks provided — index not built")
@@ -97,15 +95,14 @@ def _build_bm25_index(chunks):
     tokenised    = [_tokenise(c["text"]) for c in light_chunks]
     new_index    = BM25Okapi(tokenised)
 
-    # Persist to Redis
+    # Persist to S3 (serverless — replaces Redis)
     try:
-        r       = _get_redis_binary()
         payload = _serialize_bm25(new_index, light_chunks)
-        r.setex(BM25_REDIS_KEY, BM25_REDIS_TTL, payload)
-        log.info("BM25 persisted to Redis — %d chunks, %.1f KB compressed",
-                 len(light_chunks), len(payload)/1024)
+        _s3_client().put_object(Bucket=BM25_S3_BUCKET, Key=BM25_S3_KEY, Body=payload)
+        log.info("BM25 persisted to S3 s3://%s/%s — %d chunks, %.1f KB compressed",
+                 BM25_S3_BUCKET, BM25_S3_KEY, len(light_chunks), len(payload)/1024)
     except Exception as e:
-        log.warning("BM25 Redis persist failed (still in memory): %s", e)
+        log.warning("BM25 S3 persist failed (still in memory): %s", e)
 
     with _bm25_lock:
         _bm25_chunks = light_chunks
@@ -114,66 +111,26 @@ def _build_bm25_index(chunks):
     log.info("BM25 index ready — %d chunks", len(light_chunks))
 
 
-def _load_bm25_from_redis() -> bool:
-    """Load BM25 from Redis. Returns True if successful. Completes in <1s."""
+def _load_bm25_from_s3() -> bool:
+    """Load BM25 from S3. Returns True if successful. Fast (S3 GET + deserialize).
+    Fail-safe: any error -> False -> _bm25_built stays False -> _bm25_search
+    returns [] -> search degrades to semantic-only (never crashes)."""
     global _bm25_index, _bm25_chunks, _bm25_built
     try:
-        r    = _get_redis_binary()
-        data = r.get(BM25_REDIS_KEY)
-        if not data:
-            log.info("BM25: no cached index in Redis — will rebuild from Pinecone")
-            return False
+        obj  = _s3_client().get_object(Bucket=BM25_S3_BUCKET, Key=BM25_S3_KEY)
+        data = obj["Body"].read()
         index, chunks = _deserialize_bm25(data)
         with _bm25_lock:
             _bm25_index  = index
             _bm25_chunks = chunks
             _bm25_built  = True
-        log.info("BM25 loaded from Redis — %d chunks, %.1f KB (instant startup)",
+        log.info("BM25 loaded from S3 — %d chunks, %.1f KB (instant startup)",
                  len(chunks), len(data)/1024)
         return True
     except Exception as e:
-        log.warning("BM25 Redis load failed — will rebuild from Pinecone: %s", e)
+        log.warning("BM25 S3 load failed — semantic-only until rebuilt: %s", e)
         return False
 
-
-def _warm_bm25():
-    """
-    BM25 warmup:
-      1. Try Redis cache first  (<1s — fast path)
-      2. Fall back to Pinecone rebuild if cache miss (~30s)
-      3. Persist rebuilt index to Redis for next startup
-    """
-    try:
-        if _load_bm25_from_redis():
-            return   # fast path — done in <1s
-
-        # Slow path — rebuild from Pinecone
-        log.info("BM25: rebuilding from Pinecone...")
-        t0         = time.time()
-        all_chunks = []
-        dummy      = [0.0] * 1024
-        for ns in ALL_NAMESPACES:
-            try:
-                for _ in range(50):
-                    results = _index.query(
-                        vector=dummy, top_k=200,
-                        include_metadata=True,
-                        namespace=ns,
-                        filter=_LATEST_FILTER,
-                    )
-                    for match in results.matches:
-                        chunk = _parse_match(match, ns)
-                        if chunk:
-                            all_chunks.append(chunk)
-                    if len(results.matches) < 200:
-                        break
-            except Exception as e:
-                log.warning("BM25 Pinecone fetch failed for %s: %s", ns, e)
-        _build_bm25_index(all_chunks)
-        log.info("BM25 rebuild complete — %.1fs — %d chunks",
-                 time.time()-t0, len(all_chunks))
-    except Exception as e:
-        log.error("BM25 warm-up error: %s", e)
 
 def _bm25_search(query, top_k):
     with _bm25_lock:
@@ -279,8 +236,12 @@ def _query_namespace(vector, namespace, top_k, metadata_filter=None):
     return chunks
 
 
-# Start BM25 warm-up in background at module load
-threading.Thread(target=_warm_bm25, daemon=True, name="bm25-warmup").start()
+# Hydrate BM25 from S3 at module/container scope (the "global container scope").
+# SYNCHRONOUS (not a daemon thread — threads don't survive Lambda freeze). Fast:
+# an S3 GET + deserialize, NOT a Pinecone rebuild. Fail-safe: a miss leaves
+# _bm25_built=False and search runs semantic-only. The Pinecone rebuild lives
+# ONLY in scripts/rebuild_bm25.py (off-path) — never at import/request time.
+_load_bm25_from_s3()
 
 
 @traceable(name="retrieve-chunks", run_type="retriever")
