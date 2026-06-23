@@ -13,7 +13,7 @@ import logging
 import re as _re
 
 from config import settings
-from api.deps import get_config
+from config_dynamic import get_config
 from pipeline.generator import prepare_query, generate_answer
 from langsmith import traceable
 

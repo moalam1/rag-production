@@ -38,7 +38,7 @@ from pinecone import Pinecone
 
 from config import settings
 from pipeline.enricher import enrich_chunks_batch, merge_enrichment_into_metadata
-from api.deps import resolve_write_namespace, resolve_section_namespaces
+from config_dynamic import resolve_write_namespace, resolve_section_namespaces
 from pipeline.registry import (
     compute_hash,
     is_unchanged,
