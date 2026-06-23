@@ -14,3 +14,5 @@ logs/
 *.bak
 *.bak.*
 *.bak.[0-9]*
+__pycache__/
+*.pyc
