@@ -27,6 +27,7 @@ from llama_index.vector_stores.pinecone import PineconeVectorStore
 from config import settings
 from pipeline.page_parser import ParsedPage, PDF_TYPES, VIDEO_TYPES
 from pipeline.ingester import NAMESPACE_MAP
+from api.deps import resolve_write_namespace, resolve_section_namespaces
 from pipeline.registry import (
     is_unchanged,
     is_unchanged_by_timestamp,
@@ -54,7 +55,7 @@ FETCH_HEADERS = {
 }
 
 
-def route_and_ingest(page: ParsedPage, force: bool = False) -> list[str]:
+def route_and_ingest(page: ParsedPage, force: bool = False, section: str = "") -> list[str]:
     """
     Main entry point. Takes a ParsedPage and runs the full ingest.
 
@@ -62,7 +63,7 @@ def route_and_ingest(page: ParsedPage, force: bool = False) -> list[str]:
     """
     logs  = []
     rtype = page.resource_type
-    ns    = NAMESPACE_MAP.get(rtype, "technical")
+    ns    = resolve_write_namespace(section, rtype, NAMESPACE_MAP)
 
     logs.append(f"🔀 Routing: {page.url}")
     logs.append(f"   type={rtype} | namespace={ns} | family={page.document_family}")
@@ -84,7 +85,7 @@ def route_and_ingest(page: ParsedPage, force: bool = False) -> list[str]:
     # ── Deprecate old version ─────────────────────────────────────────────────
     if existing_version > 0:
         logs.append(f"🔄 v{existing_version} → v{version} — deprecating old chunks...")
-        for ns_del in ["technical", "business", "media"]:
+        for ns_del in resolve_section_namespaces(section or "resources"):
             try:
                 _index.delete(filter={"document_family": {"$eq": page.document_family}}, namespace=ns_del)
                 _summary.delete(filter={"document_family": {"$eq": page.document_family}}, namespace=ns_del)
@@ -334,6 +335,7 @@ def _ingest_pdf(
                 published_date      = published_date,
                 aem_tags            = aem_tags,
                 force               = force,
+                namespace_override  = namespace,
             )
             logs.extend(pdf_logs)
         except Exception as e:

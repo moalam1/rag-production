@@ -38,6 +38,7 @@ from pinecone import Pinecone
 
 from config import settings
 from pipeline.enricher import enrich_chunks_batch, merge_enrichment_into_metadata
+from api.deps import resolve_write_namespace, resolve_section_namespaces
 from pipeline.registry import (
     compute_hash,
     is_unchanged,
@@ -142,6 +143,8 @@ def ingest(
     published_date:      str = "",   # FIX 6: accept real publish date, not just today
     aem_tags:            list = None,  # enrichment tags from AEM page
     force:               bool = False, # bypass hash check for re-enrichment
+    section:             str  = "",     # L1b: target section (empty/'resources' = grandfathered)
+    namespace_override:  str  = "",     # L1b: pre-resolved namespace (skips resolution if set)
 ) -> list[str]:
     """
     Full ingestion pipeline for PDF documents.
@@ -158,7 +161,7 @@ def ingest(
         List of log strings for display in HF Space.
     """
     rtype     = resource_type.lower().strip()
-    namespace = NAMESPACE_MAP.get(rtype, "technical")
+    namespace = namespace_override or resolve_write_namespace(section, rtype, NAMESPACE_MAP)
     logs      = []
 
     try:
@@ -203,7 +206,7 @@ def ingest(
             )
             # FIX 4: purge by document_family, not filename
             # Stable across filename changes between document versions
-            for ns in ["technical", "business", "media"]:
+            for ns in resolve_section_namespaces(section or "resources"):
                 try:
                     _index.delete(
                         filter={"document_family": {"$eq": family}},

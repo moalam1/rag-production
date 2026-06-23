@@ -100,3 +100,15 @@ def resolve_section_namespaces(section: str = None) -> list:
     if section in sections:
         return sections[section].get("namespaces", [])
     return [section.strip()]
+
+
+def resolve_write_namespace(section: str, resource_type: str, namespace_map: dict) -> str:
+    """Resolve which namespace to WRITE a chunk to (Option B, grandfather).
+    section provided and not 'resources' -> the section's own namespace.
+    section absent or 'resources' -> grandfathered NAMESPACE_MAP[resource_type].
+    namespace_map passed in to avoid importing pipeline constants here (layering).
+    """
+    if section and section.strip().lower() not in ("", "resources"):
+        nss = resolve_section_namespaces(section)
+        return nss[0] if nss else section.strip()
+    return namespace_map.get((resource_type or "").lower().strip(), "technical")

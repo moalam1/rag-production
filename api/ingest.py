@@ -46,6 +46,7 @@ class IngestRequest(BaseModel):
 
     # ── Metadata (optional for page_url — auto-detected) ─────────
     resource_type:   Optional[str] = Field(None, description="One of the Equinix resource types")
+    section:         str           = Field("", description="Target section (empty/'resources' = grandfathered)")
     clean_name:      str           = ""
     document_family: str           = ""
     published_date:  str           = ""
@@ -166,7 +167,8 @@ async def _run_page_ingest(job_id: str, req: IngestRequest):
             page.published_date = req.published_date
 
         # Route and ingest
-        logs = await loop.run_in_executor(None, route_and_ingest, page)
+        from functools import partial
+        logs = await loop.run_in_executor(None, partial(route_and_ingest, page, section=req.section))
         _jobs[job_id]["logs"].extend(logs)
 
         # Determine outcome
@@ -226,6 +228,7 @@ async def _run_pdf_ingest(job_id: str, req: IngestRequest):
             page_url_override   = "",
             document_family     = req.document_family,
             published_date      = req.published_date,
+            section             = req.section,
         )
 
         _jobs[job_id]["logs"].extend(logs)
