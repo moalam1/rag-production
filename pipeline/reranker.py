@@ -73,19 +73,36 @@ def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
         return cached
 
     # ── 1. Cohere rerank — fetch more candidates than final top_k ────────────
-    docs     = [ch["text"] for ch in chunks]
-    response = _co.rerank(
-        model=settings.RERANK_MODEL,
-        query=query,
-        documents=docs,
-        top_n=_COHERE_CANDIDATES,   # FIX 2: more candidates before decay
-    )
-
-    candidates = []
-    for result in response.results:
-        chunk = chunks[result.index].copy()
-        chunk["rerank_score"] = result.relevance_score
-        candidates.append(chunk)
+    docs = [ch["text"] for ch in chunks]
+    try:
+        response = _co.rerank(
+            model=settings.RERANK_MODEL,
+            query=query,
+            documents=docs,
+            top_n=_COHERE_CANDIDATES,   # FIX 2: more candidates before decay
+        )
+        candidates = []
+        for result in response.results:
+            chunk = chunks[result.index].copy()
+            chunk["rerank_score"] = result.relevance_score
+            candidates.append(chunk)
+    except Exception as e:
+        # Graceful degradation (item 21): a rerank failure (Cohere 429 quota,
+        # 5xx, timeout, network) must NOT crash /search. Fall back to the
+        # retriever's existing order (chunks arrive pre-sorted by RRF), using
+        # a descending proxy rerank_score that stays above the caller's 0.10
+        # secondary-fallback threshold so we don't thrash an extra rerank call.
+        # The downstream decay/sort/top-N path runs unchanged. Search stays up,
+        # ranking is slightly less optimal. rerank_fallback flag = observable.
+        log.warning("Cohere rerank failed (%s) — falling back to un-reranked retriever order", e)
+        candidates = []
+        n = min(len(chunks), _COHERE_CANDIDATES)
+        for i, ch in enumerate(chunks[:n]):
+            chunk = ch.copy()
+            # preserve retriever order: descending 1.0 .. (>0.10), above threshold
+            chunk["rerank_score"]    = round(1.0 - (i / max(n, 1)) * 0.85, 4)
+            chunk["rerank_fallback"] = True
+            candidates.append(chunk)
 
     # ── 2. Apply freshness decay to every candidate ───────────────────────────
     for chunk in candidates:
