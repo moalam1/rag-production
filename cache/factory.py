@@ -16,6 +16,10 @@ def get_cache() -> BaseCache:
         from cache.redis_cache import RedisCache
         return RedisCache()
 
+    if backend == "dynamodb":
+        from cache.dynamodb_cache import DynamoDBCache
+        return DynamoDBCache()
+
     # Default: in-memory
     from cache.memory import MemoryCache
     return MemoryCache()
