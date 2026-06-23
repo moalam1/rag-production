@@ -26,23 +26,30 @@ def main():
     all_chunks = []
     dummy      = [0.0] * 1024
 
+    # FIX: query() returns the same top-K every call (similarity, not a scan) —
+    # it only ever fetched ~200/namespace, so BM25 indexed ~2% of the corpus.
+    # Use list() to paginate ALL ids, fetch() to get them in batches, and
+    # filter is_latest=True in-code (fetch has no metadata filter).
+    class _M:  # shim: make a fetched vector look like a query match for _parse_match
+        __slots__ = ("id", "metadata", "score")
+        def __init__(self, vid, meta):
+            self.id, self.metadata, self.score = vid, meta, 0.0
+
     for ns in ALL_NAMESPACES:
         ns_count = 0
-        for batch_num in range(50):  # max 50 × 200 = 10,000 per namespace
-            results = _index.query(
-                vector=dummy,
-                top_k=200,
-                include_metadata=True,
-                namespace=ns,
-                filter=_LATEST_FILTER,
-            )
-            for match in results.matches:
-                chunk = _parse_match(match, ns)
+        for id_page in _index.list(namespace=ns):           # walks ALL ids, paginated
+            if not id_page:
+                continue
+            fetched = _index.fetch(ids=id_page, namespace=ns)
+            for vid, vec in fetched.vectors.items():
+                meta = vec.metadata or {}
+                # is_latest filter in-code (boolean True, matching _LATEST_FILTER)
+                if meta.get("is_latest") not in (True, "true", "True"):
+                    continue
+                chunk = _parse_match(_M(vid, meta), ns)
                 if chunk:
                     all_chunks.append(chunk)
                     ns_count += 1
-            if len(results.matches) < 200:
-                break
         log.info("  %s: %d chunks", ns, ns_count)
 
     log.info("Total chunks fetched: %d", len(all_chunks))
