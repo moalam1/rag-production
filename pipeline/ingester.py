@@ -134,6 +134,239 @@ def _make_splitter(embed_model, buffer_size: int, threshold: int) -> SemanticSpl
     )
 
 
+# ── L2a: ingest() decomposed into stages (behavior-identical extraction) ──────
+# Each _stage_* function holds the EXACT logic from the corresponding numbered
+# block of the original ingest(). IngestContext is the state that flows between
+# stages (the future Step Functions JSON payload). ingest() is now a thin
+# orchestrator calling these in sequence.
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class IngestContext:
+    """State carried between ingestion stages (future Step Functions payload)."""
+    tmp_dir:          str
+    rtype:            str
+    namespace:        str
+    section:          str
+    first_filename:   str = ""
+    content_hash:     str = ""
+    clean_name:       str = ""
+    family:           str = ""
+    clean_name_override: str = ""
+    page_url_override:   str = ""
+    aem_tags:         list = field(default_factory=list)
+
+
+def _stage_prepare(tmp_dir, resource_type, clean_name_override,
+                   document_family, namespace, section, aem_tags,
+                   page_url_override, logs):
+    """Blocks 1-2: identify PDFs, compute hash, derive clean_name + family.
+    Returns IngestContext, or None if no PDFs found (caller returns logs)."""
+    rtype = resource_type.lower().strip()
+
+    pdf_files = list(Path(tmp_dir).glob("*.pdf"))
+    if not pdf_files:
+        logs.append("❌ No PDF files found in upload directory.")
+        return None
+
+    first_filename = pdf_files[0].name
+    content_hash   = _content_hash(tmp_dir)
+    logs.append(f"🔑 Content hash: {content_hash[:8]}...")
+
+    clean_name = (
+        clean_name_override.strip() if clean_name_override.strip()
+        else " ".join(
+            w.capitalize()
+            for w in os.path.splitext(first_filename)[0]
+            .replace("_", " ").replace("-", " ").strip().split()
+        )
+    )
+    family = _derive_family(document_family, clean_name, first_filename)
+
+    return IngestContext(
+        tmp_dir=tmp_dir, rtype=rtype, namespace=namespace, section=section,
+        first_filename=first_filename, content_hash=content_hash,
+        clean_name=clean_name, family=family,
+        clean_name_override=clean_name_override, page_url_override=page_url_override,
+        aem_tags=aem_tags or [],
+    )
+
+
+def _stage_dedup(ctx, logs) -> bool:
+    """Block 3: hash-based skip check. Returns True if unchanged (skip)."""
+    if is_unchanged(ctx.first_filename, ctx.content_hash):
+        logs.append("⏭️  Document unchanged — skipping re-index (same hash).")
+        return True
+    return False
+
+
+def _stage_version_and_deprecate(ctx, logs) -> int:
+    """Blocks 4-5: registry version + deprecate old chunks across section ns."""
+    existing_version = get_version(document_family=ctx.family, filename=ctx.first_filename)
+    version          = existing_version + 1 if existing_version > 0 else 1
+
+    if existing_version > 0:
+        logs.append(
+            f"🔄 Update detected (v{existing_version} → v{version}) "
+            f"— deprecating old chunks..."
+        )
+        for ns in resolve_section_namespaces(ctx.section or "resources"):
+            try:
+                _index.delete(
+                    filter={"document_family": {"$eq": ctx.family}},
+                    namespace=ns,
+                )
+                _summary.delete(
+                    filter={"document_family": {"$eq": ctx.family}},
+                    namespace=ns,
+                )
+            except Exception as de:
+                logs.append(f"⚠️  Could not delete old chunks in {ns}: {de}")
+        logs.append("✅ Old chunks removed from Pinecone.")
+        deprecate_old_version(ctx.first_filename)
+
+    return version
+
+
+def _stage_parse(tmp_dir, logs):
+    """Block 6: LlamaParse the PDFs. Returns raw_docs."""
+    logs.append("🔍 Parsing PDFs with LlamaParse...")
+    parser = LlamaParse(
+        api_key=settings.LLAMA_CLOUD_API_KEY,
+        result_type="markdown",
+        verbose=False,
+        parsing_instructions=(
+            "Extract all text accurately. Preserve headings, tables, "
+            "bullet points, and page structure. Include page numbers."
+        ),
+    )
+    reader   = SimpleDirectoryReader(tmp_dir, file_extractor={".pdf": parser})
+    raw_docs = reader.load_data()
+    logs.append(f"✅ Parsed {len(raw_docs)} page(s).")
+    return raw_docs
+
+
+def _stage_build_documents(raw_docs, ctx, version, published_date, logs):
+    """Block 7: build Document objects with full metadata. Returns (documents, pub_date)."""
+    logs.append("📋 Building documents with full metadata...")
+    pub_date  = published_date.strip() if published_date.strip() else datetime.now().strftime("%Y-%m-%d")
+    documents = []
+
+    for i, doc in enumerate(raw_docs):
+        filename = os.path.basename(doc.metadata.get("file_name", f"doc_{i}.pdf"))
+
+        cn = (
+            ctx.clean_name_override.strip() if ctx.clean_name_override.strip()
+            else " ".join(
+                w.capitalize()
+                for w in os.path.splitext(filename)[0]
+                .replace("_", " ").replace("-", " ").strip().split()
+            )
+        )
+
+        page   = str(doc.metadata.get("page_label", doc.metadata.get("page", str(i + 1))))
+        pg_url = _build_page_url(cn, ctx.rtype, ctx.page_url_override)
+        pdf_u  = _pdf_url(filename, page)
+
+        metadata = {
+            "filename":         filename,
+            "clean_name":       cn,
+            "resource_type":    ctx.rtype,
+            "namespace":        ctx.namespace,
+            "page":             page,
+            "page_url":         pg_url,
+            "pdf_url":          pdf_u,
+            "document_family":  ctx.family,
+            "version":          str(version),
+            "is_latest":        True,
+            "status":           "current",
+            "published_date":   pub_date,
+            "indexed_at":       datetime.now().isoformat(),
+        }
+
+        header = (
+            f"Document: {cn}\n"
+            f"Type: {ctx.rtype} | Page: {page}\n"
+            f"---\n"
+        )
+        documents.append(Document(
+            text=header + doc.text,
+            metadata=metadata,
+            excluded_llm_metadata_keys=["indexed_at", "pdf_url"],
+            excluded_embed_metadata_keys=["indexed_at", "pdf_url", "page_url"],
+        ))
+
+    logs.append(f"📋 Built {len(documents)} document(s) with metadata.")
+    return documents, pub_date
+
+
+def _stage_index(documents, embed_model, ctx, target_index,
+                 buffer_size, threshold, min_words, add_chunk_index,
+                 store_label, chunk_label, logs) -> int:
+    """Blocks 9/10 unified: chunk + filter + (chunk_index meta) + enrich + upsert."""
+    logs.append(f"✂️  {chunk_label} chunking ({threshold}th pct threshold)...")
+    splitter = _make_splitter(embed_model, buffer_size=buffer_size, threshold=threshold)
+    nodes    = splitter.get_nodes_from_documents(documents, show_progress=False)
+
+    if add_chunk_index:
+        total = len(nodes)
+        for idx, node in enumerate(nodes):
+            node.metadata["chunk_index"]  = str(idx)
+            node.metadata["total_chunks"] = str(total)
+
+    for node in nodes:
+        node.excluded_llm_metadata_keys  = ["indexed_at", "pdf_url"]
+        node.excluded_embed_metadata_keys = ["indexed_at", "pdf_url", "page_url"]
+
+    before = len(nodes)
+    nodes  = [n for n in nodes if len((n.text or n.get_content()).split()) >= min_words]
+    if before - len(nodes):
+        label = "noise" if not add_chunk_index else "noise summary"
+        logs.append(f"🧹 Dropped {before - len(nodes)} {label} chunks (<{min_words} words)")
+
+    logs.append(f"✂️  Created {len(nodes)} {chunk_label.lower()} chunks.")
+
+    nodes = _enrich_nodes_sync(
+        nodes         = nodes,
+        title         = ctx.clean_name_override or "",
+        resource_type = ctx.rtype,
+        url           = ctx.page_url_override or "",
+        aem_tags      = ctx.aem_tags or [],
+    )
+    logs.append(f"🏷️  Enriched {sum(1 for n in nodes if n.metadata.get('enriched'))} {chunk_label.lower()} chunks.")
+
+    logs.append(f"📤 Uploading to {store_label} ({ctx.namespace})...")
+    vs  = PineconeVectorStore(pinecone_index=target_index, namespace=ctx.namespace)
+    store_ctx = StorageContext.from_defaults(vector_store=vs)
+    VectorStoreIndex(nodes, storage_context=store_ctx, embed_model=embed_model)
+    logs.append(f"✅ {len(nodes)} chunks → {store_label} '{ctx.namespace}'")
+    return len(nodes)
+
+
+def _stage_persist(ctx, version, n_search, n_summary, pub_date, logs):
+    """Block 11: save registry record."""
+    try:
+        save_record(
+            filename        = ctx.first_filename,
+            clean_name      = ctx.clean_name,
+            resource_type   = ctx.rtype,
+            namespace       = ctx.namespace,
+            content_hash    = ctx.content_hash,
+            version         = version,
+            chunks_search   = n_search,
+            chunks_summary  = n_summary,
+            page_url        = ctx.page_url_override,
+            document_family = ctx.family,
+            published_date  = pub_date,
+        )
+        logs.append("📋 Registry updated in DynamoDB.")
+    except Exception as e:
+        logs.append(f"⚠️  Registry update failed: {e}")
+
+
+
 def ingest(
     tmp_dir:             str,
     resource_type:       str,
@@ -165,243 +398,57 @@ def ingest(
     logs      = []
 
     try:
-        # ── 1. Identify files and compute hash BEFORE any parsing ─────────────
-        pdf_files      = list(Path(tmp_dir).glob("*.pdf"))
-        if not pdf_files:
-            logs.append("❌ No PDF files found in upload directory.")
+        # ── Stage: prepare (identify PDFs, hash, clean_name, family) ──────────
+        ctx = _stage_prepare(
+            tmp_dir, resource_type, clean_name_override, document_family,
+            namespace, section, aem_tags, page_url_override, logs,
+        )
+        if ctx is None:
             return logs
 
-        first_filename = pdf_files[0].name
-        content_hash   = _content_hash(tmp_dir)
-        logs.append(f"🔑 Content hash: {content_hash[:8]}...")
-
-        # ── 2. Derive clean_name and family ONCE — before any resets ─────────
-        # FIX 2: family derived here and carried through — never reset below
-        clean_name = (
-            clean_name_override.strip() if clean_name_override.strip()
-            else " ".join(
-                w.capitalize()
-                for w in os.path.splitext(first_filename)[0]
-                .replace("_", " ").replace("-", " ").strip().split()
-            )
-        )
-        family = _derive_family(document_family, clean_name, first_filename)
-
-        # ── 3. Skip if unchanged ──────────────────────────────────────────────
-        if not force and is_unchanged(first_filename, content_hash):
-            logs.append("⏭️  Document unchanged — skipping re-index (same hash).")
+        # ── Stage: dedup (skip if unchanged) ──────────────────────────────────
+        if not force and _stage_dedup(ctx, logs):
             shutil.rmtree(tmp_dir, ignore_errors=True)
             return logs
 
-        # ── 4. Version from registry — not from caller ────────────────────────
-        # FIX 3: version is always registry-driven, caller no longer supplies it
-        existing_version = get_version(document_family=family, filename=first_filename)
-        version          = existing_version + 1 if existing_version > 0 else 1
+        # ── Stage: version + deprecate old ────────────────────────────────────
+        version = _stage_version_and_deprecate(ctx, logs)
 
-        # ── 5. Deprecate old version if update detected ───────────────────────
-        if existing_version > 0:
-            logs.append(
-                f"🔄 Update detected (v{existing_version} → v{version}) "
-                f"— deprecating old chunks..."
-            )
-            # FIX 4: purge by document_family, not filename
-            # Stable across filename changes between document versions
-            for ns in resolve_section_namespaces(section or "resources"):
-                try:
-                    _index.delete(
-                        filter={"document_family": {"$eq": family}},
-                        namespace=ns,
-                    )
-                    _summary.delete(
-                        filter={"document_family": {"$eq": family}},
-                        namespace=ns,
-                    )
-                except Exception as de:
-                    logs.append(f"⚠️  Could not delete old chunks in {ns}: {de}")
-            logs.append("✅ Old chunks removed from Pinecone.")
-            deprecate_old_version(first_filename)
+        # ── Stage: parse (LlamaParse) ─────────────────────────────────────────
+        raw_docs = _stage_parse(tmp_dir, logs)
 
-        # ── 6. Parse PDFs with LlamaParse ────────────────────────────────────
-        logs.append("🔍 Parsing PDFs with LlamaParse...")
-        parser = LlamaParse(
-            api_key=settings.LLAMA_CLOUD_API_KEY,
-            result_type="markdown",
-            verbose=False,
-            parsing_instructions=(
-                "Extract all text accurately. Preserve headings, tables, "
-                "bullet points, and page structure. Include page numbers."
-            ),
+        # ── Stage: build documents + metadata ─────────────────────────────────
+        documents, pub_date = _stage_build_documents(
+            raw_docs, ctx, version, published_date, logs
         )
-        reader   = SimpleDirectoryReader(tmp_dir, file_extractor={".pdf": parser})
-        raw_docs = reader.load_data()
-        logs.append(f"✅ Parsed {len(raw_docs)} page(s).")
 
-        # ── 7. Build documents with full metadata ─────────────────────────────
-        logs.append("📋 Building documents with full metadata...")
-        pub_date  = published_date.strip() if published_date.strip() else datetime.now().strftime("%Y-%m-%d")
-        documents = []
-
-        for i, doc in enumerate(raw_docs):
-            filename = os.path.basename(doc.metadata.get("file_name", f"doc_{i}.pdf"))
-
-            # Per-page clean_name (respects override)
-            cn = (
-                clean_name_override.strip() if clean_name_override.strip()
-                else " ".join(
-                    w.capitalize()
-                    for w in os.path.splitext(filename)[0]
-                    .replace("_", " ").replace("-", " ").strip().split()
-                )
-            )
-
-            page   = str(doc.metadata.get("page_label", doc.metadata.get("page", str(i + 1))))
-            pg_url = _build_page_url(cn, rtype, page_url_override)
-            pdf_u  = _pdf_url(filename, page)
-
-            # FIX 1: is_latest is a boolean True, not string "true"
-            # Pinecone filter {"is_latest": {"$eq": True}} requires native bool
-            metadata = {
-                # Identity
-                "filename":         filename,
-                "clean_name":       cn,
-                "resource_type":    rtype,
-                "namespace":        namespace,
-
-                # Navigation
-                "page":             page,
-                "page_url":         pg_url,
-                "pdf_url":          pdf_u,
-
-                # Versioning — FIX 1: boolean, not string
-                "document_family":  family,
-                "version":          str(version),
-                "is_latest":        True,        # ← boolean
-                "status":           "current",
-
-                # Freshness — FIX 6: real publish date if provided
-                "published_date":   pub_date,
-                "indexed_at":       datetime.now().isoformat(),
-            }
-
-            header = (
-                f"Document: {cn}\n"
-                f"Type: {rtype} | Page: {page}\n"
-                f"---\n"
-            )
-            documents.append(Document(
-                text=header + doc.text,
-                metadata=metadata,
-                excluded_llm_metadata_keys=["indexed_at", "pdf_url"],
-                excluded_embed_metadata_keys=["indexed_at", "pdf_url", "page_url"],
-            ))
-
-        logs.append(f"📋 Built {len(documents)} document(s) with metadata.")
-
-        # ── 8. Embed model ────────────────────────────────────────────────────
+        # ── Embed model (shared by both index passes) ─────────────────────────
         embed_model = OpenAIEmbedding(
             model=settings.EMBED_MODEL,
             api_key=settings.OPENAI_API_KEY,
             dimensions=settings.EMBED_DIMS,
         )
 
-        # ── 9. Search index — 300-500 token chunks (80th pct) ─────────────────
-        logs.append("✂️  Search chunking (80th pct threshold)...")
-        search_splitter = _make_splitter(embed_model, buffer_size=1, threshold=80)
-        search_nodes    = search_splitter.get_nodes_from_documents(
-            documents, show_progress=False
+        # ── Stage: index — search (buffer=1, 80th pct) ────────────────────────
+        n_search = _stage_index(
+            documents, embed_model, ctx, _index,
+            buffer_size=1, threshold=80, min_words=50,
+            add_chunk_index=False, store_label="rag-poc", chunk_label="Search", logs=logs,
         )
-        for node in search_nodes:
-            node.excluded_llm_metadata_keys  = ["indexed_at", "pdf_url"]
-            node.excluded_embed_metadata_keys = ["indexed_at", "pdf_url", "page_url"]
 
-        # Filter noise chunks — title fragments, copyright notices, footers
-        MIN_CHUNK_WORDS = 50
-        before = len(search_nodes)
-        search_nodes = [n for n in search_nodes if len((n.text or n.get_content()).split()) >= MIN_CHUNK_WORDS]
-        if before - len(search_nodes):
-            logs.append(f"🧹 Dropped {before - len(search_nodes)} noise chunks (<{MIN_CHUNK_WORDS} words)")
-
-        logs.append(f"✂️  Created {len(search_nodes)} search chunks.")
-
-        # ── NEW: enrich search nodes ──────────────────────────────────────────
-        search_nodes = _enrich_nodes_sync(
-            nodes         = search_nodes,
-            title         = clean_name_override or "",
-            resource_type = rtype,
-            url           = page_url_override or "",
-            aem_tags      = aem_tags or [],
+        # ── Stage: index — summary (buffer=3, 95th pct, chunk_index meta) ─────
+        n_summary = _stage_index(
+            documents, embed_model, ctx, _summary,
+            buffer_size=3, threshold=95, min_words=50,
+            add_chunk_index=True, store_label="rag-summary", chunk_label="Summary", logs=logs,
         )
-        logs.append(f"🏷️  Enriched {sum(1 for n in search_nodes if n.metadata.get('enriched'))} search chunks.")
-        # ─────────────────────────────────────────────────────────────────────
 
-        logs.append(f"📤 Uploading to rag-poc ({namespace})...")
-        search_vs  = PineconeVectorStore(pinecone_index=_index, namespace=namespace)
-        search_ctx = StorageContext.from_defaults(vector_store=search_vs)
-        VectorStoreIndex(search_nodes, storage_context=search_ctx, embed_model=embed_model)
-        logs.append(f"✅ {len(search_nodes)} chunks → rag-poc '{namespace}'")
-
-        # ── 10. Summary index — 1500-2000 token chunks (95th pct) ─────────────
-        logs.append("✂️  Summary chunking (95th pct threshold)...")
-        summary_splitter = _make_splitter(embed_model, buffer_size=3, threshold=95)
-        summary_nodes    = summary_splitter.get_nodes_from_documents(
-            documents, show_progress=False
-        )
-        total = len(summary_nodes)
-        for idx, node in enumerate(summary_nodes):
-            node.metadata["chunk_index"]  = str(idx)
-            node.metadata["total_chunks"] = str(total)
-            node.excluded_llm_metadata_keys  = ["indexed_at", "pdf_url"]
-            node.excluded_embed_metadata_keys = ["indexed_at", "pdf_url", "page_url"]
-
-        # Filter noise chunks from summary index
-        MIN_SUMMARY_WORDS = 50
-        before_sum = len(summary_nodes)
-        summary_nodes = [n for n in summary_nodes if len((n.text or n.get_content()).split()) >= MIN_SUMMARY_WORDS]
-        if before_sum - len(summary_nodes):
-            logs.append(f"🧹 Dropped {before_sum - len(summary_nodes)} noise summary chunks (<{MIN_SUMMARY_WORDS} words)")
-
-        logs.append(f"✂️  Created {len(summary_nodes)} summary chunks.")
-
-        # ── NEW: enrich summary nodes ─────────────────────────────────────────
-        summary_nodes = _enrich_nodes_sync(
-            nodes         = summary_nodes,
-            title         = clean_name_override or "",
-            resource_type = rtype,
-            url           = page_url_override or "",
-            aem_tags      = aem_tags or [],
-        )
-        logs.append(f"🏷️  Enriched {sum(1 for n in summary_nodes if n.metadata.get('enriched'))} summary chunks.")
-        # ─────────────────────────────────────────────────────────────────────
-
-        logs.append(f"📤 Uploading to rag-summary ({namespace})...")
-        summary_vs  = PineconeVectorStore(pinecone_index=_summary, namespace=namespace)
-        summary_ctx = StorageContext.from_defaults(vector_store=summary_vs)
-        VectorStoreIndex(summary_nodes, storage_context=summary_ctx, embed_model=embed_model)
-        logs.append(f"✅ {len(summary_nodes)} chunks → rag-summary '{namespace}'")
-
-        # ── 11. Save to DynamoDB registry ─────────────────────────────────────
-        # FIX 5: removed dead _pdfs computation — first_filename and content_hash in scope
-        try:
-            save_record(
-                filename        = first_filename,
-                clean_name      = clean_name,
-                resource_type   = rtype,
-                namespace       = namespace,
-                content_hash    = content_hash,
-                version         = version,
-                chunks_search   = len(search_nodes),
-                chunks_summary  = len(summary_nodes),
-                page_url        = page_url_override,
-                document_family = family,
-                published_date  = pub_date,
-            )
-            logs.append("📋 Registry updated in DynamoDB.")
-        except Exception as e:
-            logs.append(f"⚠️  Registry update failed: {e}")
+        # ── Stage: persist (registry) ─────────────────────────────────────────
+        _stage_persist(ctx, version, n_search, n_summary, pub_date, logs)
 
         logs.append(
-            f"🎉 Ingest complete — '{clean_name}' v{version} "
-            f"({rtype}) → namespace '{namespace}' — now searchable."
+            f"🎉 Ingest complete — '{ctx.clean_name}' v{version} "
+            f"({ctx.rtype}) → namespace '{ctx.namespace}' — now searchable."
         )
 
     except Exception as e:
