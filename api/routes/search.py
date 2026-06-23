@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 
 from api.models import (SearchRequest, Source, SearchResponse,
                         SummariseRequest, SummariseResponse)
-from api.deps import verify_api_key, get_config
+from api.deps import verify_api_key, get_config, validate_search_namespace
 from config import settings
 from limiter import limiter
 import guardrails.input  as input_grad
@@ -29,6 +29,18 @@ router = APIRouter(prefix="/api/v1", tags=["search"])
 @limiter.limit("120/minute")
 @limiter.limit("5000/day")
 async def search(req: SearchRequest, request: Request, _: str = Depends(verify_api_key)):
+    # ── Section release gate (strict, validate-first) ────────────────────────────
+    # An unreleased/unknown/raw namespace is rejected BEFORE any query processing.
+    _ns_ok, _allowed = validate_search_namespace(getattr(req, "namespace", "all"))
+    if not _ns_ok:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": f"section '{req.namespace}' is not available",
+                "available_sections": _allowed + ["all"],
+            },
+        )
+
 
     from langsmith import get_current_run_tree
     run = get_current_run_tree()
