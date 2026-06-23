@@ -27,7 +27,7 @@ from llama_index.vector_stores.pinecone import PineconeVectorStore
 from config import settings
 from pipeline.page_parser import ParsedPage, PDF_TYPES, VIDEO_TYPES
 from pipeline.ingester import NAMESPACE_MAP
-from api.deps import resolve_write_namespace, resolve_section_namespaces
+from config_dynamic import resolve_write_namespace, resolve_section_namespaces
 from pipeline.registry import (
     is_unchanged,
     is_unchanged_by_timestamp,

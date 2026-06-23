@@ -45,7 +45,7 @@ _pc    = Pinecone(api_key=settings.PINECONE_API_KEY)
 _index = _pc.Index(settings.PINECONE_INDEX)
 
 RETRIEVAL_CACHE_TTL = min(settings.CACHE_TTL_SECONDS, 3600)  # 1hr max — retrieval cache
-from api.deps import resolve_section_namespaces
+from config_dynamic import resolve_section_namespaces
 ALL_NAMESPACES      = resolve_section_namespaces("all")  # config-derived (grandfather fallback = the legacy 3)
 RRF_K               = 60    # standard RRF constant
 ALPHA               = 0.7   # semantic weight; 1-ALPHA = lexical weight
