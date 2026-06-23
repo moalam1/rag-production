@@ -11,7 +11,7 @@ uptime probe used by the gateway/load balancer.
 """
 from fastapi import APIRouter, Depends
 
-from api.deps import verify_api_key, get_config
+from api.deps import verify_api_key, get_config, list_released_sections
 from config import settings
 
 router = APIRouter(prefix="/api/v1", tags=["system"])
@@ -31,6 +31,14 @@ async def badge_styles(_: str = Depends(verify_api_key)):
         "Interconnection":       {"icon":"🔗","bg":"#0f1a1a","color":"#5eead4"},
     })
     return {"badge_styles": styles}
+
+
+@router.get("/sections")
+def get_sections(_: str = Depends(verify_api_key)):
+    """List sections currently released for scoped search.
+    Callers pass one of these (or "all") as the /search `namespace`.
+    """
+    return {"sections": list_released_sections(), "default": "all"}
 
 
 @router.get("/health")

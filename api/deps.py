@@ -91,8 +91,11 @@ def resolve_section_namespaces(section: str = None) -> list:
     """
     sections = get_config("sections", _SECTIONS_FALLBACK)
     if not section or section.strip().lower() in ("", "all"):
+        # "all" unions only RELEASED sections (unreleased content stays invisible)
         out, seen = [], set()
         for s in sections.values():
+            if not s.get("released", False):
+                continue
             for ns in s.get("namespaces", []):
                 if ns not in seen:
                     out.append(ns); seen.add(ns)
@@ -100,6 +103,23 @@ def resolve_section_namespaces(section: str = None) -> list:
     if section in sections:
         return sections[section].get("namespaces", [])
     return [section.strip()]
+
+
+def list_released_sections() -> list:
+    """Names of sections with released=True, for discovery + validation."""
+    sections = get_config("sections", _SECTIONS_FALLBACK)
+    return [name for name, cfg in sections.items() if cfg.get("released", False)]
+
+
+def validate_search_namespace(namespace: str) -> tuple:
+    """Validate a /search request's namespace under strict release-gating.
+    Allowed: "all"/""/None, or a RELEASED section name. Returns (is_valid, allowed_list).
+    Raw legacy namespaces (technical/business/media) are NOT directly requestable.
+    """
+    released = list_released_sections()
+    if not namespace or namespace.strip().lower() in ("", "all"):
+        return True, released
+    return (namespace.strip() in released), released
 
 
 def resolve_write_namespace(section: str, resource_type: str, namespace_map: dict) -> str:
