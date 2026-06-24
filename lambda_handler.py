@@ -1,7 +1,7 @@
 """
 lambda_handler.py — AWS Lambda entry point for the SEARCH path.
 
-Wraps the existing FastAPI `app` (main.py) with Mangum so API Gateway can invoke
+Wraps the SEARCH-scoped FastAPI `app` (search_app.py — no ingestion/LlamaIndex) with Mangum so API Gateway can invoke
 it as a Lambda. The SAME app runs on uvicorn (EC2/local) and Lambda (here) — no
 app changes, full dev/prod parity.
 
@@ -16,6 +16,6 @@ imported (on the first search) — once per cold container, reused across warm
 invocations (the 'global container scope' pattern). See pipeline/retriever.py.
 """
 from mangum import Mangum
-from main import app
+from search_app import app
 
 handler = Mangum(app, lifespan="auto")
