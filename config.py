@@ -50,6 +50,8 @@ class Settings:
     REDIS_URL:         str = os.getenv("REDIS_URL", "redis://localhost:6379")
     CACHE_TTL_SECONDS: int = int(os.getenv("CACHE_TTL_SECONDS", "21600"))  # 6 hour default
     CACHE_MAX_SIZE:    int = int(os.getenv("CACHE_MAX_SIZE", "1000"))       # for in-memory
+    # ── BM25 artifact (S3 — serverless, replaces Redis) ───────────
+    BM25_S3_BUCKET:    str = os.getenv("BM25_S3_BUCKET", "rag-artifacts")
 
     # ── API ───────────────────────────────────────────────────────
     API_KEY:           str = os.getenv("API_KEY", "")                # for AEM auth

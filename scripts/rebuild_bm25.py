@@ -1,10 +1,10 @@
 """
-scripts/rebuild_bm25.py — Rebuild BM25 index from Pinecone and persist to Redis.
+scripts/rebuild_bm25.py — Rebuild BM25 index from Pinecone and persist to S3.
 
 Run this after:
   - Full seed run completes
   - Nightly crawl adds significant new content
-  - Redis cache expires (7 day TTL)
+  - BM25 corpus changes (re-run to refresh the S3 snapshot)
 
 Usage:
   /usr/bin/python3.11 scripts/rebuild_bm25.py
@@ -17,7 +17,7 @@ log = logging.getLogger("rebuild_bm25")
 
 from pipeline.retriever import (
     _index, ALL_NAMESPACES, _LATEST_FILTER,
-    _parse_match, _build_bm25_index, BM25_REDIS_KEY, _get_redis_binary
+    _parse_match, _build_bm25_index, BM25_S3_BUCKET, BM25_S3_KEY, _s3_client
 )
 
 def main():
@@ -26,23 +26,30 @@ def main():
     all_chunks = []
     dummy      = [0.0] * 1024
 
+    # FIX: query() returns the same top-K every call (similarity, not a scan) —
+    # it only ever fetched ~200/namespace, so BM25 indexed ~2% of the corpus.
+    # Use list() to paginate ALL ids, fetch() to get them in batches, and
+    # filter is_latest=True in-code (fetch has no metadata filter).
+    class _M:  # shim: make a fetched vector look like a query match for _parse_match
+        __slots__ = ("id", "metadata", "score")
+        def __init__(self, vid, meta):
+            self.id, self.metadata, self.score = vid, meta, 0.0
+
     for ns in ALL_NAMESPACES:
         ns_count = 0
-        for batch_num in range(50):  # max 50 × 200 = 10,000 per namespace
-            results = _index.query(
-                vector=dummy,
-                top_k=200,
-                include_metadata=True,
-                namespace=ns,
-                filter=_LATEST_FILTER,
-            )
-            for match in results.matches:
-                chunk = _parse_match(match, ns)
+        for id_page in _index.list(namespace=ns):           # walks ALL ids, paginated
+            if not id_page:
+                continue
+            fetched = _index.fetch(ids=id_page, namespace=ns)
+            for vid, vec in fetched.vectors.items():
+                meta = vec.metadata or {}
+                # is_latest filter in-code (boolean True, matching _LATEST_FILTER)
+                if meta.get("is_latest") not in (True, "true", "True"):
+                    continue
+                chunk = _parse_match(_M(vid, meta), ns)
                 if chunk:
                     all_chunks.append(chunk)
                     ns_count += 1
-            if len(results.matches) < 200:
-                break
         log.info("  %s: %d chunks", ns, ns_count)
 
     log.info("Total chunks fetched: %d", len(all_chunks))
@@ -50,14 +57,13 @@ def main():
     # Build and persist
     _build_bm25_index(all_chunks)
 
-    # Verify Redis
-    r    = _get_redis_binary()
-    data = r.get(BM25_REDIS_KEY)
-    if data:
-        log.info("✅ Verified in Redis — %s KB compressed", round(len(data)/1024, 1))
-        log.info("TTL: %d seconds", r.ttl(BM25_REDIS_KEY))
-    else:
-        log.error("❌ Redis verification failed")
+    # Verify S3
+    try:
+        head = _s3_client().head_object(Bucket=BM25_S3_BUCKET, Key=BM25_S3_KEY)
+        log.info("✅ Verified in S3 s3://%s/%s — %s KB",
+                 BM25_S3_BUCKET, BM25_S3_KEY, round(head["ContentLength"]/1024, 1))
+    except Exception as e:
+        log.error("❌ S3 verification failed: %s", e)
 
     log.info("Done in %.1f seconds", time.time() - t0)
 
