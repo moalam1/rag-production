@@ -1,0 +1,13 @@
+.git
+.env
+*.pyc
+__pycache__
+*.bak
+node_modules
+apps/search-ui
+eval
+tests
+docs
+*.md
+.venv
+venv

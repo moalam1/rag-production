@@ -1,0 +1,23 @@
+# Dockerfile.ingest — ingestion Fargate container (full LlamaIndex + LlamaParse stack)
+# On-demand task: runs one section ingest + rebuilds BM25, then exits.
+FROM python:3.11-slim
+
+# system deps for lxml/bs4 (HTML parsing) + C extensions
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ libxml2-dev libxslt1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# full deps first (layer caching) — the heavy stack (llama-parse, llama-index, bs4...)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# app code needed for ingestion
+COPY config.py config_dynamic.py run_ingest.py limiter.py ./
+COPY pipeline/ ./pipeline/
+COPY scripts/ ./scripts/
+COPY api/ ./api/
+
+# on-demand: run an ingest + exit. Section via INGEST_SECTION env or command override.
+ENTRYPOINT ["python3.11", "run_ingest.py"]
