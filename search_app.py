@@ -48,12 +48,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Phase-1 routers (always mounted): search, admin/ops, system, feedback
 app.include_router(search_router)
-app.include_router(analytics_router)
 app.include_router(admin_router)
 app.include_router(system_router)
-app.include_router(visitor_router)
 app.include_router(feedback_router, prefix="/api/v1")
+
+# Phase-2 routers (visitor intelligence): analytics + visitor — mount only when enabled.
+# All 6 analytics endpoints derive from episodic/visitor-profile data, and the visitor
+# router reads/writes visitor intelligence — both off in phase-1 prod (GDPR-safe).
+if settings.ENABLE_VISITOR_INTELLIGENCE:
+    app.include_router(analytics_router)
+    app.include_router(visitor_router)
+    log = __import__("logging").getLogger(__name__)
+    log.info("Phase-2 intelligence routers mounted (analytics, visitor)")
 
 
 @app.on_event("startup")

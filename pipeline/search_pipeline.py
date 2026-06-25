@@ -85,7 +85,7 @@ async def _run_pipeline(
     import pipeline.semantic_cache as semantic_cache
 
     visitor_profile_summary = ""
-    if visitor_id and visitor_id not in ("v_prod_guest", ""):
+    if settings.ENABLE_VISITOR_INTELLIGENCE and visitor_id and visitor_id not in ("v_prod_guest", ""):
         try:
             import pinecone as _pin
             from config import settings as _sc

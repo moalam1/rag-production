@@ -108,7 +108,7 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
             )
             for s in result.get("sources", [])
         ]
-        if getattr(req, "visitor_id", "") and req.visitor_id != "v_prod_guest":
+        if settings.ENABLE_SESSION_MEMORY and getattr(req, "visitor_id", "") and req.visitor_id != "v_prod_guest":
             try:
                 import sys
                 _p = "/home/ssm-user/rag-production/pipeline"
@@ -125,9 +125,9 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
                     lead_quality_tag  = pipeline_out.get("lead_quality_tag", "EARLY_EXPLORER"),
                     resource_types    = pipeline_out.get("resource_types", []),
                     detected_workloads= pipeline_out.get("detected_workloads", []),
-                    detected_competitors = _competitors,
-                    country = req.country,
-                    company = req.company,
+                    detected_competitors = _competitors if settings.ENABLE_VISITOR_INTELLIGENCE else [],
+                    country = req.country if settings.ENABLE_VISITOR_INTELLIGENCE else "",
+                    company = req.company if settings.ENABLE_VISITOR_INTELLIGENCE else "",
                     metro   = _metro,
                 )
             except Exception:
@@ -195,7 +195,7 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
     except Exception:
         pass
 
-    if getattr(req, "visitor_id", "") and req.visitor_id != "v_prod_guest":
+    if settings.ENABLE_SESSION_MEMORY and getattr(req, "visitor_id", "") and req.visitor_id != "v_prod_guest":
         try:
             import sys
             _p = "/home/ssm-user/rag-production/pipeline"
@@ -224,9 +224,9 @@ async def search(req: SearchRequest, request: Request, _: str = Depends(verify_a
                 lead_quality_tag   = pipeline_out.get("lead_quality_tag", "EARLY_EXPLORER"),
                 resource_types     = pipeline_out.get("resource_types", []),
                 detected_workloads = pipeline_out.get("detected_workloads", []),
-                detected_competitors = _competitors,
-                country = req.country,
-                company = req.company,
+                detected_competitors = _competitors if settings.ENABLE_VISITOR_INTELLIGENCE else [],
+                country = req.country if settings.ENABLE_VISITOR_INTELLIGENCE else "",
+                company = req.company if settings.ENABLE_VISITOR_INTELLIGENCE else "",
                 metro   = _metro,
             )
             print(f"📡 [BACKEND SUCCESS] Committed tracking step to DynamoDB for ID: {req.visitor_id}")

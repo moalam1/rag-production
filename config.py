@@ -61,6 +61,9 @@ class Settings:
     # ── Logging ───────────────────────────────────────────────────
     LOG_LEVEL:         str = os.getenv("LOG_LEVEL", "INFO")
     ENVIRONMENT:       str = os.getenv("ENVIRONMENT", "development")
+    # ── Phase-2 feature flags (default OFF — phase 1 = ingestion + search + basic analytics only) ──
+    ENABLE_SESSION_MEMORY:       bool = os.getenv("ENABLE_SESSION_MEMORY", "false").lower() == "true"
+    ENABLE_VISITOR_INTELLIGENCE: bool = os.getenv("ENABLE_VISITOR_INTELLIGENCE", "false").lower() == "true"
 
 
 settings = Settings()
