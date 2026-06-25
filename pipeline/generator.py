@@ -28,6 +28,8 @@ from openai import OpenAI
 from config import settings
 from langsmith import traceable
 
+log = logging.getLogger(__name__)
+
 # Spell correction for English queries
 try:
     from spellchecker import SpellChecker
