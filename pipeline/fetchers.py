@@ -46,6 +46,15 @@ def discover_urls(section_config: dict) -> list[str]:
     urls, errors = _fetch_sitemap_urls(sitemap)
     if errors:
         log.warning("discover_urls: sitemap fetch errors for %s: %s", sitemap, errors)
+    # Canonicalize the content host. Equinix's sitemap lists prod.equinix.com (the
+    # internal origin, only reachable inside the Equinix network). For ingestion from
+    # outside that network (local/personal-account testing), rewrite to the public
+    # www.equinix.com CDN, which serves the same content. In-network production can
+    # set CONTENT_HOST=prod.equinix.com to hit the origin directly.
+    import os as _os
+    content_host = section_config.get("content_host") or _os.getenv("CONTENT_HOST", "www.equinix.com")
+    if content_host:
+        urls = [u.replace("prod.equinix.com", content_host) for u in urls]
 
     seen, filtered = set(), []
     for u in urls:
