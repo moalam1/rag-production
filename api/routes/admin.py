@@ -162,3 +162,116 @@ async def admin_put_prompt_v2(pid: str, body: dict, _: str = Depends(verify_api_
     log.warning("admin: prompt#%s saved → v%s (%s chars)", pid, new_v, len(prompt))
     return {"ok": True, "id": pid, "version": new_v, "note": _PROMPT_META[pid]["note"]}
     
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# OPS ENDPOINTS (Tier-2 admin) — reversible/idempotent one-click operations.
+# Cache flush · BM25 rebuild · ingest trigger · status. All fail-soft.
+# ════════════════════════════════════════════════════════════════════════════
+
+@router.post("/admin/cache/flush")
+async def admin_cache_flush(mode: str = "all", _: str = Depends(verify_api_key)):
+    """Flush a cache layer. mode = all | answers | semantic | bm25.
+    Reversible — caches re-warm on use. NOTE: prompt changes auto-invalidate via
+    Prompt Studio; use this for bad answers / post-reindex / format changes."""
+    flushed = []
+    if mode in ("all", "answers"):
+        try:
+            from cache.factory import cache
+            cache().clear()                       # L1 answers (Redis/DynamoDB/memory)
+            flushed.append("answers")
+        except Exception as e:
+            flushed.append(f"answers:error({e})")
+    if mode in ("all", "semantic"):
+        try:
+            from pipeline import semantic_cache as _sc
+            _sc.clear()                           # L2 Pinecone semantic-cache namespace
+            flushed.append("semantic")
+        except Exception as e:
+            flushed.append(f"semantic:error({e})")
+    if mode in ("all", "bm25"):
+        flushed.append("bm25:not-flushed (use /admin/bm25/rebuild — BM25 is rebuilt, not cleared)")
+    if not flushed:
+        raise HTTPException(400, f"unknown mode: {mode} (use all|answers|semantic|bm25)")
+    log.warning("admin: cache flush mode=%s → %s", mode, flushed)
+    return {"status": "ok", "mode": mode, "flushed": flushed}
+
+
+@router.post("/admin/bm25/rebuild")
+async def admin_bm25_rebuild(_: str = Depends(verify_api_key)):
+    """Rebuild the BM25 index from the full Pinecone corpus → S3. Reversible.
+    Search picks up the new index on its next cold start."""
+    try:
+        import scripts.rebuild_bm25 as _rb
+        _rb.main()
+        log.warning("admin: BM25 rebuilt via admin endpoint")
+        return {"status": "ok", "message": "BM25 rebuilt and persisted to S3"}
+    except Exception as e:
+        log.exception("admin bm25 rebuild failed")
+        raise HTTPException(500, f"rebuild failed: {e}")
+
+
+@router.post("/admin/ingest/run")
+async def admin_ingest_run(section: str, limit: int = 0,
+                           _: str = Depends(verify_api_key)):
+    """Trigger an ingestion Fargate task for a section. Dedup-safe.
+    Fail-soft: if ecs:RunTask isn't granted, returns the equivalent CLI command."""
+    import os, boto3
+    cluster   = os.getenv("ECS_CLUSTER", "rag-cluster")
+    taskdef   = os.getenv("ECS_INGEST_TASKDEF", "rag-ingest-task")
+    region    = os.getenv("AWS_REGION", "us-east-1")
+    subnets   = [s for s in os.getenv("ECS_SUBNETS", "").split(",") if s]
+    secgroups = [s for s in os.getenv("ECS_SECURITY_GROUPS", "").split(",") if s]
+    overrides = {"containerOverrides": [{
+        "name": "rag-ingest",
+        "environment": [
+            {"name": "INGEST_SECTION", "value": section},
+            {"name": "INGEST_LIMIT",   "value": str(limit)},
+        ],
+    }]}
+    try:
+        ecs = boto3.client("ecs", region_name=region)
+        netcfg = {"awsvpcConfiguration": {
+            "subnets": subnets, "securityGroups": secgroups, "assignPublicIp": "ENABLED"}}
+        resp = ecs.run_task(cluster=cluster, taskDefinition=taskdef, launchType="FARGATE",
+                            count=1, overrides=overrides, networkConfiguration=netcfg)
+        arn = resp["tasks"][0]["taskArn"] if resp.get("tasks") else None
+        log.warning("admin: ingest task launched section=%s arn=%s", section, arn)
+        return {"status": "launched", "taskArn": arn, "section": section, "limit": limit}
+    except Exception as e:
+        cmd = (f"aws ecs run-task --cluster {cluster} --task-definition {taskdef} "
+               f"--launch-type FARGATE --count 1 --region {region} "
+               f"--overrides '{{\"containerOverrides\":[{{\"name\":\"rag-ingest\","
+               f"\"environment\":[{{\"name\":\"INGEST_SECTION\",\"value\":\"{section}\"}}]}}]}}'")
+        return {"status": "manual_required", "reason": str(e),
+                "note": "Grant ecs:RunTask + iam:PassRole (+ set ECS_SUBNETS/ECS_SECURITY_GROUPS env) for one-click. Until then run:",
+                "command": cmd}
+
+
+@router.get("/admin/status")
+async def admin_status(_: str = Depends(verify_api_key)):
+    """Ops snapshot: cache backend + stats, semantic cache stats, BM25 freshness."""
+    out = {}
+    try:
+        from cache.factory import cache
+        c = cache()
+        out["cache_backend"] = type(c).__name__
+        out["cache_stats"]   = c.stats() if hasattr(c, "stats") else {}
+    except Exception as e:
+        out["cache_error"] = str(e)
+    try:
+        from pipeline import semantic_cache as _sc
+        out["semantic_stats"]   = _sc.stats() if hasattr(_sc, "stats") else {}
+        out["semantic_version"] = getattr(_sc, "CACHE_VERSION", "?")
+    except Exception as e:
+        out["semantic_error"] = str(e)
+    try:
+        import os, boto3
+        s3 = boto3.client("s3", region_name=os.getenv("AWS_REGION", "us-east-1"))
+        head = s3.head_object(Bucket=os.getenv("BM25_S3_BUCKET", "rag-artifacts-s3"),
+                              Key="bm25/index.pkl")
+        out["bm25_last_modified"] = head["LastModified"].isoformat()
+        out["bm25_size_kb"]       = round(head["ContentLength"] / 1024, 1)
+    except Exception as e:
+        out["bm25_error"] = str(e)
+    return {"status": "ok", **out}
