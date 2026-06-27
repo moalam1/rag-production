@@ -72,7 +72,7 @@ def check_bedrock(answer: str) -> tuple[bool, str]:
         if action == "GUARDRAIL_INTERVENED":
             reason = "Response blocked by security policy."
             for output in response.get("outputs", []):
-                txt = output.get("text", {}).get("text", "")
+                txt = output.get("text", "")
                 if txt:
                     reason = txt
                     break

@@ -15,9 +15,9 @@ class Settings:
     EMBED_DIMS:        int = 1024
     GENERATION_MODEL:  str = "gpt-4o"
     GUARDRAIL_MODEL:   str = "gpt-4o-mini"   # cheap model for safety checks
-    AWS_REGION:                str = "us-east-1"
-    BEDROCK_GUARDRAIL_ID:      str = ""
-    BEDROCK_GUARDRAIL_VERSION: str = "DRAFT"
+    AWS_REGION:                str = os.getenv("AWS_REGION", "us-east-1")
+    BEDROCK_GUARDRAIL_ID:      str = os.getenv("BEDROCK_GUARDRAIL_ID", "")
+    BEDROCK_GUARDRAIL_VERSION: str = os.getenv("BEDROCK_GUARDRAIL_VERSION", "DRAFT")
 
     # ── Pinecone ──────────────────────────────────────────────────
     PINECONE_API_KEY:  str = os.getenv("PINECONE_API_KEY", "")
