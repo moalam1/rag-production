@@ -155,6 +155,7 @@ async def _run_pipeline(
 
     cached = semantic_cache.get(embedding, lang=detected_lang)
     if cached:
+        log.info("CACHE HIT (semantic) | query=%r | similarity=%.4f", query[:80], cached.get("similarity", 0.0))
         cached["detected_lang"] = detected_lang
         cached["source"]        = source
         cached["namespace"]     = namespace or "all"
@@ -222,6 +223,21 @@ async def _run_pipeline(
         if fallback and fallback[0].get("rerank_score", 0) > top_score:
             reranked = fallback
 
+    # Resource-lookup fallback: for case studies / whitepapers etc., the
+    # resource_type filter + vector search already rank correctly, but Cohere
+    # rerank systematically under-scores this content (~0.005). When a
+    # resource_type filter is active and Cohere is below threshold but the
+    # retrieval score is healthy, rank by retrieval score instead of missing.
+    _rtype_filter = bool(intent.metadata_filter.get("resource_type")) if intent.metadata_filter else False
+    if _rtype_filter and top_score < 0.10 and chunks:
+        _best_ret = max((c.get("score", 0) for c in chunks), default=0)
+        if _best_ret >= 0.25:
+            reranked = sorted(chunks, key=lambda c: c.get("score", 0), reverse=True)
+            for _c in reranked:
+                _c["rerank_score"] = _c.get("score", 0)
+            top_score = reranked[0].get("rerank_score", 0)
+            log.info("RESOURCE FALLBACK | retrieval score %.3f (Cohere under-scored)", top_score)
+
     context = build_context(reranked)
     result  = generate_answer(query, context, detected_lang=detected_lang)
     result["detected_lang"] = detected_lang
@@ -229,6 +245,9 @@ async def _run_pipeline(
     result["namespace"]     = namespace or "all"
     result["chunk_count"]   = len(reranked)
     result["top_score"]     = round(reranked[0].get("rerank_score", 0), 4) if reranked else 0
+    log.info("CACHE MISS (fresh pipeline) | query=%r | top_score=%.4f | chunks=%d | confidence=%.3f", query[:80], result["top_score"], len(reranked), intent.confidence)
+    if not reranked or result["top_score"] < 0.10:
+        log.warning("POSSIBLE MISS | query=%r | top_score=%.4f | reranked=%d -- weak/no grounding", query[:80], result["top_score"], len(reranked))
     result["_intent"]            = intent.intent
     result["_confidence"]        = intent.confidence
     result["_rewritten_query"]   = intent.rewritten_query
