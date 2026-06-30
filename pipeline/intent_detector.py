@@ -23,6 +23,16 @@ Cost:  ~$0.0002/query (LLM path)
 import asyncio
 import json
 import logging
+import re as _re_module
+_CASESTUDY_RE = _re_module.compile(
+    r"\b(case[\s-]?stud(?:y|ies)|customer[\s-]?stor(?:y|ies)|"
+    r"success[\s-]?stor(?:y|ies))\b", _re_module.I)
+_METAWORD_RE = _re_module.compile(
+    r"\b(case[\s-]?stud(?:y|ies)|customer[\s-]?stor(?:y|ies)|"
+    r"success[\s-]?stor(?:y|ies)|whitepapers?|blueprints?|data[\s-]?sheets?|"
+    r"solution[\s-]?briefs?|find|show\s+me|i\s+need|related\s+to|about|for)\b",
+    _re_module.I)
+_WS_RE = _re_module.compile(r"\s+")
 import os
 from dataclasses import dataclass, field
 from typing import Optional
@@ -80,7 +90,7 @@ RETRIEVAL_PARAMS = {
     "find_resource": {
         "top_k":       5,
         "rrf_alpha":   0.6,
-        "namespaces":  ["technical", "business"],
+        "namespaces":  ["technical", "business", "media", "customer-success"],
         "description": "User wants a specific document format",
     },
     "evaluate_specs": {
@@ -110,7 +120,7 @@ RETRIEVAL_PARAMS = {
     "general": {
         "top_k":       5,
         "rrf_alpha":   0.7,
-        "namespaces":  ["technical", "business", "media"],
+        "namespaces":  ["technical", "business", "media", "customer-success"],
         "description": "Vague or multi-topic query",
     },
 }
@@ -139,7 +149,7 @@ FRICTION_KEYWORDS = {
 }
 
 # Intents that should never be inherited — always re-classify
-NON_INHERITABLE = {"general", "unknown"}
+NON_INHERITABLE = {"general", "unknown", "find_resource"}
 
 
 def _has_friction_keywords(query: str) -> bool:
@@ -213,6 +223,15 @@ troubleshoot triggers — query describes an ACTIVE problem:
 Other rules:
 - "what is X / how does X work / explain X" → learn_concept
 - "show me / find me / I need a [doc type]" → find_resource
+- CRITICAL for find_resource rewritten_query: STRIP document-type words
+  ("case study", "case studies", "customer story", "customer stories", "success story",
+   "whitepaper", "blueprint", "data sheet", "find", "show me", "related to", "about")
+  and keep ONLY the topic/industry/subject. The resource_type is captured separately in
+  content_type_hint, so the rewritten_query must be the bare topic for relevance matching.
+  Examples:
+    "case studies related to banking" -> rewritten_query: "banking financial services"
+    "customer stories for AI" -> rewritten_query: "artificial intelligence AI"
+    "case studies for media and healthcare" -> rewritten_query: "media healthcare"
 - "X vs Y / compare / difference between"   → compare
 - Asking WHAT specs ARE → evaluate_specs, never troubleshoot
 - Only troubleshoot when user describes active failure they are experiencing
@@ -260,8 +279,17 @@ def _build_metadata_filter(
     if (content_type_hint != "any"
             and confidence >= 0.85
             and intent == "find_resource"):
-        # Normalise plural → singular: "blueprints" → "blueprint"
-        rtype = content_type_hint.rstrip("s")
+        # Normalise plural → singular. rstrip("s") breaks on -ies words
+        # ("case-studies" -> "case-studie"), so map known types explicitly.
+        _RTYPE_MAP = {
+            "case-studies":   "case-study",
+            "success-stories":"success-story",
+            "data-sheets":    "data-sheet",
+            "whitepapers":    "whitepaper",
+            "blueprints":     "blueprint",
+            "solution-briefs":"solution-brief",
+        }
+        rtype = _RTYPE_MAP.get(content_type_hint, content_type_hint.rstrip("s"))
         filters["resource_type"] = {"$eq": rtype}
 
     # Only filter on enriched chunks when applying metadata filters
@@ -371,6 +399,13 @@ async def detect_intent(
             intent     = raw.get("intent", "general")
             confidence = float(raw.get("confidence", 0.8))
 
+            # Deterministic override: case study / customer story / success story
+            # queries are ALWAYS find_resource (LLM waffles by phrasing).
+            if _CASESTUDY_RE.search(query):
+                intent = "find_resource"
+                confidence = max(confidence, 0.90)
+                raw["content_type_hint"] = ("success-stories"
+                    if "success" in query.lower() else "case-studies")
             # Validate
             if intent not in RETRIEVAL_PARAMS:
                 intent     = "general"
