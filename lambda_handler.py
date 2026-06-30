@@ -15,6 +15,11 @@ The BM25 index hydrates from S3 at module scope when pipeline.retriever is first
 imported (on the first search) — once per cold container, reused across warm
 invocations (the 'global container scope' pattern). See pipeline/retriever.py.
 """
+# Load secrets from Secrets Manager into os.environ BEFORE importing the app
+# (config.py reads env vars at import time). No-op outside Lambda.
+from secrets_loader import load_secrets
+load_secrets()
+
 from mangum import Mangum
 from search_app import app
 
