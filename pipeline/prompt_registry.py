@@ -1,6 +1,7 @@
 """Prompt registry — prompts live in rag-config (prompt#<id>), 5-min TTL cache.
 Consumers fall back to their hardcoded literals if the registry is empty/unreachable."""
 import time, threading, logging
+from config import settings
 
 log = logging.getLogger("prompt_registry")
 _cache: dict = {}
@@ -19,7 +20,7 @@ def _load():
             return _cache
         try:
             import boto3
-            t = boto3.resource("dynamodb", region_name="us-east-1").Table("rag-config")
+            t = boto3.resource("dynamodb", region_name="us-east-1").Table(settings.CONFIG_TABLE)
             fresh = {}
             for pid in PROMPT_IDS:
                 r = t.get_item(Key={"config_key": f"prompt#{pid}"})

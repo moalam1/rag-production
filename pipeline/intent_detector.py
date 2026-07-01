@@ -21,6 +21,7 @@ Cost:  ~$0.0002/query (LLM path)
 """
 
 import asyncio
+from config import settings
 import json
 import logging
 import re as _re_module
@@ -67,7 +68,7 @@ def _load_equinix_config():
     try:
         import boto3 as _b3, time as _t
         _ddb   = _b3.resource("dynamodb", region_name="us-east-1")
-        _table = _ddb.Table("rag-config")
+        _table = _ddb.Table(settings.CONFIG_TABLE)
         prods  = _table.get_item(Key={"config_key":"equinix_products"})
         uses   = _table.get_item(Key={"config_key":"equinix_use_cases"})
         return (
