@@ -1,0 +1,20 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_REPO: "019313283759.dkr.ecr.us-east-1.amazonaws.com/rag-uat-ingest"
+    REGION: "us-east-1"
+
+phases:
+  pre_build:
+    commands:
+      - 'echo "logging in to ECR"'
+      - 'aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin 019313283759.dkr.ecr.us-east-1.amazonaws.com'
+  build:
+    commands:
+      - 'echo "building ingestion image"'
+      - 'docker build -f Dockerfile.ingest -t $ECR_REPO:latest .'
+  post_build:
+    commands:
+      - 'docker push $ECR_REPO:latest'
+      - 'echo "DONE pushed $ECR_REPO:latest"'
