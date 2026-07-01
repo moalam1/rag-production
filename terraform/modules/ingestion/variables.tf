@@ -8,10 +8,10 @@
 ###############################################################################
 
 variable "env" {
-  description = "Environment (uat | prod)."
+  description = "Environment (dev | uat | prod)."
   type        = string
   validation {
-    condition     = contains(["uat", "prod"], var.env)
+    condition     = contains(["dev","uat", "prod"], var.env)
     error_message = "env must be 'uat' or 'prod'."
   }
 }
