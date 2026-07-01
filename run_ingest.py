@@ -36,6 +36,7 @@ def _bool_env(name: str, default: bool) -> bool:
 
 
 def main() -> int:
+    log.info("=== INGEST BUILD MARKER: fargate-test-v1 ===")
     # Args can come from CLI (local) or ENV (Fargate). CLI wins if provided.
     ap = argparse.ArgumentParser()
     ap.add_argument("section", nargs="?", default=os.getenv("INGEST_SECTION", ""),
