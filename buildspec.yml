@@ -13,26 +13,26 @@ phases:
       python: 3.11
   pre_build:
     commands:
-      - ACCT=$(aws sts get-caller-identity --query Account --output text)
-      - echo "building for $TARGET_FUNCTION in account $ACCT"
+      - 'ACCT=$(aws sts get-caller-identity --query Account --output text)'
+      - 'echo "building for $TARGET_FUNCTION in account $ACCT"'
   build:
     commands:
-      - rm -rf ./pkg && mkdir -p ./pkg
-      - python3.11 -m pip install -r requirements-search.txt --target ./pkg --platform manylinux2014_x86_64 --python-version 3.11 --only-binary=:all: --upgrade -q
-      - cp config.py config_dynamic.py search_app.py lambda_handler.py limiter.py secrets_loader.py ./pkg/
-      - cp -r pipeline cache guardrails ./pkg/
-      - mkdir -p ./pkg/api/routes
-      - cp api/*.py ./pkg/api/ 2>/dev/null || true
-      - cp -r api/routes ./pkg/api/
-      - rm -f ./pkg/api/ingest.py
-      - find ./pkg -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
-      - ( cd ./pkg && zip -r9 -q ../search-lambda.zip . )
+      - 'rm -rf ./pkg && mkdir -p ./pkg'
+      - 'python3.11 -m pip install -r requirements-search.txt --target ./pkg --platform manylinux2014_x86_64 --python-version 3.11 --only-binary=:all: --upgrade -q'
+      - 'cp config.py config_dynamic.py search_app.py lambda_handler.py limiter.py secrets_loader.py ./pkg/'
+      - 'cp -r pipeline cache guardrails ./pkg/'
+      - 'mkdir -p ./pkg/api/routes'
+      - 'cp api/*.py ./pkg/api/ 2>/dev/null || true'
+      - 'cp -r api/routes ./pkg/api/'
+      - 'rm -f ./pkg/api/ingest.py'
+      - 'find ./pkg -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true'
+      - 'cd ./pkg && zip -r9 -q ../search-lambda.zip . && cd ..'
   post_build:
     commands:
-      - aws s3 cp "s3://$ARTIFACTS_BUCKET/$LAMBDA_S3_KEY" "s3://$ARTIFACTS_BUCKET/lambda/search-lambda-PREV.zip" --region $REGION 2>/dev/null || echo "(no prior version)"
-      - aws s3 cp ./search-lambda.zip "s3://$ARTIFACTS_BUCKET/$LAMBDA_S3_KEY" --region $REGION
-      - aws lambda update-function-code --function-name "$TARGET_FUNCTION" --s3-bucket "$ARTIFACTS_BUCKET" --s3-key "$LAMBDA_S3_KEY" --region $REGION >/dev/null
-      - echo "DONE $TARGET_FUNCTION updated"
+      - 'aws s3 cp "s3://$ARTIFACTS_BUCKET/$LAMBDA_S3_KEY" "s3://$ARTIFACTS_BUCKET/lambda/search-lambda-PREV.zip" --region $REGION 2>/dev/null || echo "(no prior version)"'
+      - 'aws s3 cp ./search-lambda.zip "s3://$ARTIFACTS_BUCKET/$LAMBDA_S3_KEY" --region $REGION'
+      - 'aws lambda update-function-code --function-name "$TARGET_FUNCTION" --s3-bucket "$ARTIFACTS_BUCKET" --s3-key "$LAMBDA_S3_KEY" --region $REGION'
+      - 'echo "DONE $TARGET_FUNCTION updated"'
 
 artifacts:
   files:
