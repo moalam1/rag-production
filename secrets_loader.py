@@ -20,7 +20,6 @@ import boto3
 _SECRET_MAP = {
     "openai-api-key":       "OPENAI_API_KEY",
     "pinecone-api-key":     "PINECONE_API_KEY",
-    "cohere-api-key":       "COHERE_API_KEY",
     "bedrock-guardrail-id": "BEDROCK_GUARDRAIL_ID",
 }
 
