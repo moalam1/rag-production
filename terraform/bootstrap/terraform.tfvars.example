@@ -1,0 +1,17 @@
+# bootstrap/terraform.tfvars.example
+#
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+#
+# Find your principal ARN to trust:  aws sts get-caller-identity
+# (use the role ARN, not the assumed-role session ARN — strip the /SESSION part)
+
+deploy_role_trusted_principals = [
+  # e.g. your Identity Center admin permission-set role:
+  # "arn:aws:iam::019313283759:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AdministratorAccess_abc123"
+]
+
+# If the default bucket name is globally taken, uncomment + suffix the account id:
+# state_bucket_name = "rag-terraform-state-019313283759"
+
+# region          = "us-east-1"   # default, locked by Bedrock availability
+# require_mfa_to_assume = false    # flip to true once SSO MFA is enforced

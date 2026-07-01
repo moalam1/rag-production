@@ -16,3 +16,16 @@ logs/
 *.bak.[0-9]*
 __pycache__/
 *.pyc
+
+# macOS
+.DS_Store
+
+# Terraform
+**/.terraform/*
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+*.BAK
+*-BACKUP/
+crash.log
