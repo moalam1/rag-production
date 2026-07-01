@@ -192,6 +192,7 @@ locals {
   secret_names = [
     "openai-api-key",
     "pinecone-api-key",
+    "cohere-api-key",
     "bedrock-guardrail-id",
     "app-api-key", # the X-API-Key for AEM/admin auth
   ]
