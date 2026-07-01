@@ -21,6 +21,7 @@ import logging
 import os
 import sys
 import time
+from config import settings
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s — %(message)s")
@@ -61,7 +62,7 @@ def main() -> int:
 
     # load section config (same as ingest_section._load_section_config)
     ddb = boto3.resource("dynamodb", region_name=os.getenv("AWS_REGION", "us-east-1"))
-    sections = ddb.Table("rag-config").get_item(
+    sections = ddb.Table(settings.CONFIG_TABLE).get_item(
         Key={"config_key": "sections"}).get("Item", {}).get("data", {})
     if args.section not in sections:
         log.error("section %r not in rag-config: %s", args.section, list(sections.keys()))

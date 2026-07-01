@@ -31,7 +31,7 @@ from config import settings
 
 log = logging.getLogger(__name__)
 
-TABLE_NAME = "rag-document-registry"
+TABLE_NAME = settings.REGISTRY_TABLE
 REGION     = settings.AWS_REGION
 
 

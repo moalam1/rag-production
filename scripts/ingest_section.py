@@ -26,6 +26,7 @@ import boto3
 from pipeline.fetchers import discover_urls
 from pipeline.page_parser import parse_page
 from pipeline.ingest_router import route_and_ingest
+from config import settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("ingest_section")
@@ -33,7 +34,7 @@ log = logging.getLogger("ingest_section")
 
 def _load_section_config(section: str) -> dict:
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = ddb.Table("rag-config")
+    table = ddb.Table(settings.CONFIG_TABLE)
     resp = table.get_item(Key={"config_key": "sections"})
     sections = resp.get("Item", {}).get("data", {})
     if section not in sections:
