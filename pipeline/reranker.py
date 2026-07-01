@@ -12,15 +12,44 @@ Fixes applied:
 import logging
 from datetime import datetime
 
-import cohere
-
 from config import settings
 from langsmith import traceable
 from cache.factory import cache
 from cache.memory import MemoryCache
 
 log = logging.getLogger(__name__)
-_co = cohere.Client(settings.COHERE_API_KEY)
+
+# Rerank backend: "cohere" (direct API, needs COHERE_API_KEY) or "bedrock"
+# (hosted Cohere Rerank 3.5, auth via IAM — no key). Toggle via RERANK_BACKEND.
+_RERANK_BACKEND = getattr(settings, "RERANK_BACKEND", "cohere").lower()
+
+if _RERANK_BACKEND == "cohere":
+    import cohere
+    _co = cohere.Client(settings.COHERE_API_KEY)
+else:
+    import boto3, json as _json
+    _bedrock = boto3.client("bedrock-runtime",
+                            region_name=getattr(settings, "AWS_REGION", "us-east-1"))
+
+
+def _rerank_call(query: str, docs: list[str], top_n: int) -> list[tuple[int, float]]:
+    """Backend-agnostic rerank. Returns [(index, relevance_score), ...].
+    Both backends use Cohere Rerank; bedrock hosts it (IAM auth, no key)."""
+    if _RERANK_BACKEND == "cohere":
+        resp = _co.rerank(
+            model=settings.RERANK_MODEL, query=query, documents=docs, top_n=top_n,
+        )
+        return [(r.index, r.relevance_score) for r in resp.results]
+    # bedrock invoke_model — Cohere Rerank 3.5
+    body = _json.dumps({
+        "query": query, "documents": docs, "top_n": top_n, "api_version": 2,
+    })
+    resp = _bedrock.invoke_model(
+        modelId=getattr(settings, "BEDROCK_RERANK_MODEL_ID", "cohere.rerank-v3-5:0"),
+        body=body,
+    )
+    results = _json.loads(resp["body"].read())["results"]
+    return [(r["index"], r["relevance_score"]) for r in results]
 
 # Fetch 2× candidates from Cohere so decay re-sorting has room to work
 _COHERE_CANDIDATES = min(settings.TOP_K_RERANK * 2, 20)
@@ -75,16 +104,11 @@ def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
     # ── 1. Cohere rerank — fetch more candidates than final top_k ────────────
     docs = [ch["text"] for ch in chunks]
     try:
-        response = _co.rerank(
-            model=settings.RERANK_MODEL,
-            query=query,
-            documents=docs,
-            top_n=_COHERE_CANDIDATES,   # FIX 2: more candidates before decay
-        )
+        ranked = _rerank_call(query, docs, _COHERE_CANDIDATES)
         candidates = []
-        for result in response.results:
-            chunk = chunks[result.index].copy()
-            chunk["rerank_score"] = result.relevance_score
+        for idx, score in ranked:
+            chunk = chunks[idx].copy()
+            chunk["rerank_score"] = score
             candidates.append(chunk)
     except Exception as e:
         # Graceful degradation (item 21): a rerank failure (Cohere 429 quota,
@@ -94,7 +118,7 @@ def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
         # secondary-fallback threshold so we don't thrash an extra rerank call.
         # The downstream decay/sort/top-N path runs unchanged. Search stays up,
         # ranking is slightly less optimal. rerank_fallback flag = observable.
-        log.warning("Cohere rerank failed (%s) — falling back to un-reranked retriever order", e)
+        log.warning("Rerank failed (%s) — falling back to un-reranked retriever order", e)
         candidates = []
         n = min(len(chunks), _COHERE_CANDIDATES)
         for i, ch in enumerate(chunks[:n]):

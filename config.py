@@ -50,6 +50,8 @@ class Settings:
     CONFIG_TABLE:      str = os.getenv("CONFIG_TABLE", "rag-config")  # DynamoDB prompts/config table
     CACHE_TABLE:       str = os.getenv("CACHE_TABLE", "rag-cache")   # DynamoDB answer-cache table
     REGISTRY_TABLE:    str = os.getenv("REGISTRY_TABLE", "rag-document-registry")  # DynamoDB doc registry
+    RERANK_BACKEND:         str = os.getenv("RERANK_BACKEND", "cohere")  # cohere | bedrock
+    BEDROCK_RERANK_MODEL_ID: str = os.getenv("BEDROCK_RERANK_MODEL_ID", "cohere.rerank-v3-5:0")
     REDIS_URL:         str = os.getenv("REDIS_URL", "redis://localhost:6379")
     CACHE_TTL_SECONDS: int = int(os.getenv("CACHE_TTL_SECONDS", "21600"))  # 6 hour default
     CACHE_MAX_SIZE:    int = int(os.getenv("CACHE_MAX_SIZE", "1000"))       # for in-memory
