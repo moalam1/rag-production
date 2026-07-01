@@ -47,6 +47,7 @@ class Settings:
 
     # ── Cache ─────────────────────────────────────────────────────
     CACHE_BACKEND:     str = os.getenv("CACHE_BACKEND", "memory")   # memory | redis | dynamodb
+    CONFIG_TABLE:      str = os.getenv("CONFIG_TABLE", "rag-config")  # DynamoDB prompts/config table
     REDIS_URL:         str = os.getenv("REDIS_URL", "redis://localhost:6379")
     CACHE_TTL_SECONDS: int = int(os.getenv("CACHE_TTL_SECONDS", "21600"))  # 6 hour default
     CACHE_MAX_SIZE:    int = int(os.getenv("CACHE_MAX_SIZE", "1000"))       # for in-memory

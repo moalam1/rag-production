@@ -8,6 +8,7 @@ backward compatibility, so existing `from api.deps import get_config` callers
 keep working unchanged.
 """
 import logging
+from config import settings
 import threading as _threading
 import time as _time
 
@@ -32,7 +33,7 @@ def _load_config() -> dict:
         try:
             import boto3 as _b3
             _ddb   = _b3.resource("dynamodb", region_name="us-east-1")
-            _table = _ddb.Table("rag-config")
+            _table = _ddb.Table(settings.CONFIG_TABLE)
             keys   = ["workload_signals", "product_signals",
                       "commercial_keywords", "workload_badge_styles",
                       "sections"]
