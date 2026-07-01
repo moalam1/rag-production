@@ -24,3 +24,6 @@ from mangum import Mangum
 from search_app import app
 
 handler = Mangum(app, lifespan="auto")
+
+import logging as _logging
+_logging.getLogger().info("=== DEPLOY MARKER: codebuild-test-v1 ===")
