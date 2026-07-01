@@ -22,7 +22,6 @@ _SECRET_MAP = {
     "pinecone-api-key":     "PINECONE_API_KEY",
     "cohere-api-key":       "COHERE_API_KEY",
     "bedrock-guardrail-id": "BEDROCK_GUARDRAIL_ID",
-    "app-api-key":          "API_KEY",
 }
 
 
