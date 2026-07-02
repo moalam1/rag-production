@@ -29,3 +29,4 @@ terraform.tfvars
 *.BAK
 *-BACKUP/
 crash.log
+.idea/
