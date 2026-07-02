@@ -136,6 +136,15 @@ data "aws_iam_policy_document" "lambda_permissions" {
     ]
     resources = ["*"] # model + guardrail ARNs vary; scope later if desired
   }
+
+  # Comprehend: query language detection (DetectDominantLanguage).
+  # No resource-level scoping available for this action → must be "*".
+  statement {
+    sid       = "Comprehend"
+    effect    = "Allow"
+    actions   = ["comprehend:DetectDominantLanguage"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "lambda" {
