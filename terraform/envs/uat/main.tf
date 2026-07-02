@@ -90,3 +90,11 @@ module "search" {
   waf_enabled             = true     # WAF on from the start
   cors_allowed_origins    = ["*"]    # UAT only — prod MUST scope to equinix.com
 }
+
+module "observability" {
+  source             = "../../modules/observability"
+  env                = "uat"
+  region             = var.region
+  alarm_emails       = ["moalam@equinix.com"]   # add teammates here
+  api_latency_p99_ms = 10000
+}
